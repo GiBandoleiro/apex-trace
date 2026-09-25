@@ -97,6 +97,8 @@ export class Vehicle {
 
   /** AI knobs - ignored for the player. */
   paceMultiplier = 1;
+  avoidanceOffset = 0;
+  trafficSpeedCap = Infinity;
   mistakeTimer = 0;
   private mistakeSteer = 0;
 
@@ -198,6 +200,10 @@ export class Vehicle {
 
     let toX = target.x - this.x;
     let toZ = target.z - this.z;
+    if (!this.isPlayer && this.avoidanceOffset !== 0) {
+      toX -= Math.sin(this.heading) * this.avoidanceOffset;
+      toZ += Math.cos(this.heading) * this.avoidanceOffset;
+    }
     if (this.mistakeTimer > 0) {
       // A mistake nudges the aim point sideways for a moment.
       const nx = -Math.sin(this.heading);
@@ -216,7 +222,7 @@ export class Vehicle {
 
     // --- 3. Longitudinal demand -----------------------------------------
     // Look a little further ahead than we steer so braking starts in time.
-    const speedTarget = Math.min(
+    const speedTarget = Math.min(this.trafficSpeedCap,
       target.targetSpeed,
       this.path.sampleAhead(this.pathIndex, lookahead * 1.9).targetSpeed,
     ) * this.paceMultiplier;

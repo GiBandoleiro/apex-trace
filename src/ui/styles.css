@@ -135,6 +135,22 @@ button {
   backdrop-filter: blur(3px);
 }
 
+.screen--menu {
+  isolation: isolate;
+  background:
+    linear-gradient(90deg, rgba(4, 7, 12, 0.79) 0%, rgba(4, 7, 12, 0.43) 42%, rgba(4, 7, 12, 0.06) 78%),
+    url('/hero-race.webp') center center / cover no-repeat;
+}
+
+.screen--menu::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(0deg, rgba(2, 4, 8, .68), transparent 38%);
+}
+
 @keyframes screen-in {
   from {
     opacity: 0;
@@ -1516,3 +1532,18 @@ button {
   .draw-stats .hud-block { min-width: 64px; }
   .garage__view-label { font-size: 9px; max-width: 58%; line-height: 1.4; }
 }
+
+.draw-legend { align-self: center; display: flex; gap: 14px; padding: 6px 10px; border-radius: 100px; background: rgba(5,9,16,.78); border: 1px solid rgba(255,255,255,.13); font: 700 10px var(--font-display); letter-spacing: .09em; text-transform: uppercase; color: #e8edf7; pointer-events: none; }
+.draw-legend span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.draw-legend i { display: block; width: 14px; height: 5px; border-radius: 5px; box-shadow: 0 0 10px currentColor; }
+.draw-legend__slow { background: #ff4a36; color: #ff4a36; }
+.draw-legend__fast { background: #38ed81; color: #38ed81; }
+.hud-pause { cursor: pointer; pointer-events: auto; width: 44px; height: 44px; border: 1px solid rgba(255,255,255,.25); border-radius: 13px; color: #fff; background: rgba(7,11,20,.86); backdrop-filter: blur(12px); font: 800 20px var(--font-display); box-shadow: 0 8px 26px #0007; }
+.hud-pause:hover { background: rgba(255,138,61,.3); border-color: var(--accent); }
+.pause-overlay { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 20px; background: rgba(2,5,10,.62); backdrop-filter: blur(12px); pointer-events: auto; }
+.pause-card { width: min(430px, 100%); padding: 30px; border: 1px solid rgba(255,255,255,.22); border-radius: 22px; background: linear-gradient(150deg, #1b2433, #090d16); box-shadow: 0 25px 90px #000b; text-align: center; }
+.pause-card h2 { margin: 8px 0; font: 800 clamp(40px,8vw,68px) var(--font-display); text-transform: uppercase; line-height: 1; }
+.pause-card p { color: var(--text-dim); line-height: 1.5; }
+.pause-card .row { justify-content: center; flex-wrap: wrap; margin: 24px 0 16px; }
+.pause-card small { color: var(--text-faint); }
+@media (max-width: 600px) { .draw-legend { font-size: 9px; gap: 8px; margin-bottom: 5px; } .pause-card { padding: 24px 16px; } .hud-pause { width: 37px; height: 37px; } .screen--menu { background-position: 62% center; } }

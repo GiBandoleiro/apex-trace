@@ -330,6 +330,19 @@ export const buildTrackScene = (
   terrain.receiveShadow = quality.shadows;
   terrain.name = 'terrain';
   track(terrain);
+  // A distant flat extension keeps portrait overview cameras on land.
+  const horizonGeo = new THREE.PlaneGeometry(maxX - minX + 4000, maxZ - minZ + 4000);
+  horizonGeo.rotateX(-Math.PI / 2);
+  horizonGeo.translate((minX + maxX) / 2, -8, (minZ + maxZ) / 2);
+  {
+    const uv = horizonGeo.attributes.uv as THREE.BufferAttribute;
+    const pos = horizonGeo.attributes.position as THREE.BufferAttribute;
+    for (let i = 0; i < pos.count; i++) uv.setXY(i, pos.getX(i) / 7, pos.getZ(i) / 7);
+  }
+  disposables.push(horizonGeo);
+  const horizon = new THREE.Mesh(horizonGeo, terrainMat);
+  horizon.name = 'distant terrain';
+  track(horizon);
 
   /* --- 2. Verge, run-off traps and embankment ---------------------- */
   // The whole lap gets a verge in the local ground material; the authored

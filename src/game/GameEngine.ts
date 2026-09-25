@@ -96,6 +96,7 @@ export interface EngineCallbacks {
   onResult?: (r: RaceResult) => void;
   onFps?: (fps: number) => void;
   onQualityDrop?: (tier: QualityTier) => void;
+  onPause?: (paused: boolean) => void;
 }
 
 export class GameEngine {
@@ -106,6 +107,7 @@ export class GameEngine {
   private quality: QualityProfile;
   private input: InputController | null = null;
   private callbacks: EngineCallbacks = {};
+  private paused = false;
 
   private trackScene: TrackScene | null = null;
   private geometry: TrackGeometry | null = null;
@@ -461,6 +463,8 @@ export class GameEngine {
 
   /** Builds the grid and enters the drawing phase. */
   async beginRace(setup: Omit<RaceSetup, 'geometry'>): Promise<void> {
+    this.paused = false;
+    this.callbacks.onPause?.(false);
     await this.loadTrack(setup.track.id);
     this.clearRace();
     this.disposeShowcase();
@@ -487,14 +491,14 @@ export class GameEngine {
     this.skid.clear();
     this.particles.clear();
     this.rig.mode = 'overview';
-    this.rig.frameBounds(this.geometry!.bounds, 1.48, true);
+    this.rig.frameBounds(this.geometry!.bounds, 1.7, true);
     this.trajectory.clear();
     this.trajectory.visible = true;
     this.danger.clear();
     this.resetDrawState();
     this.setPhase('draw');
     if (this.input) this.input.drawMode = true;
-    audio.startAmbience('track', this.trackDef?.timeOfDay ?? 'day');
+    audio.startAmbience('track', this.trackDef?.timeOfDay ?? 'day', this.trackDef?.weather);
   }
 
   /* ---------------------------------------------------------------- */
@@ -517,6 +521,11 @@ export class GameEngine {
     this.activeStroke = [];
     this.livePoints = [];
     this.appendStrokeSample(p);
+    const point = this.livePoints[0];
+    if (point && this.geometry) {
+      this.rig.focusOverview(point.x, point.z);
+      this.rig.zoom(0.65);
+    }
   }
 
   private onStrokeMove(p: StrokePoint): void {
@@ -528,7 +537,9 @@ export class GameEngine {
     });
     const sorted = [...speeds].sort((a, b) => a - b);
     const median = sorted[Math.floor(sorted.length / 2)] || 1;
-    this.trajectory.drawPolyline(this.livePoints, 2.5, speeds.map((speed) => Math.max(0.12, Math.min(1.2, 0.58 * speed / median))));
+    this.trajectory.drawPolyline(this.livePoints, 3.5, speeds.map((speed) => Math.max(0.08, Math.min(1.2, 0.62 * speed / median))));
+    const tail = this.livePoints[this.livePoints.length - 1];
+    if (tail) this.rig.focusOverview(tail.x, tail.z);
   }
 
   private appendStrokeSample(p: StrokePoint): void {
@@ -544,6 +555,7 @@ export class GameEngine {
 
   private onStrokeEnd(): void {
     if (this.phase !== 'draw') return;
+    if (this.geometry) this.rig.frameBounds(this.geometry.bounds, 1.7, false);
     if (this.activeStroke.length < 3) {
       this.activeStroke = [];
       this.livePoints = [];
@@ -658,6 +670,9 @@ export class GameEngine {
       case 'KeyR':
         if (this.phase === 'draw') this.clearLine();
         break;
+      case 'KeyP':
+        this.togglePause();
+        break;
       case 'KeyZ':
         if (this.phase === 'draw') this.undoLine();
         break;
@@ -668,6 +683,13 @@ export class GameEngine {
       default:
         break;
     }
+  }
+
+  togglePause(): void {
+    if (this.phase !== 'racing' && this.phase !== 'countdown') return;
+    this.paused = !this.paused;
+    audio.setRacePaused(this.paused);
+    this.callbacks.onPause?.(this.paused);
   }
 
   /* ---------------------------------------------------------------- */
@@ -781,7 +803,7 @@ export class GameEngine {
     if (!sim) return;
 
     const prevCountdown = sim.countdownNumber;
-    sim.update(dt);
+    if (!this.paused) sim.update(dt);
 
     if (sim.phase === 'racing' && this.phase === 'countdown') this.setPhase('racing');
     if (sim.phase === 'countdown' && sim.countdownNumber !== prevCountdown) {
@@ -875,7 +897,7 @@ export class GameEngine {
     this.rig.update(dt);
 
     // Audio.
-    audio.updateEngine(speedRatio, pv.throttle, pv.slipIntensity, dt);
+    if (!this.paused) audio.updateEngine(speedRatio, pv.throttle, pv.slipIntensity, dt);
 
     // Telemetry out to the HUD.
     const t = sim.telemetry;
@@ -916,7 +938,7 @@ export class GameEngine {
   frameTrack(): void {
     if (!this.geometry) return;
     this.rig.mode = 'overview';
-    this.rig.frameBounds(this.geometry.bounds, 1.12, false);
+    this.rig.frameBounds(this.geometry.bounds, 1.7, false);
   }
 
   /** Cheap top-down snapshot of the circuit for the track-select cards. */
@@ -995,6 +1017,8 @@ export class GameEngine {
 
   /** Returns to the idle/menu state after a race. */
   exitRace(): void {
+    this.paused = false;
+    this.callbacks.onPause?.(false);
     audio.stopEngine();
     this.clearRace();
     this.trajectory.clear();

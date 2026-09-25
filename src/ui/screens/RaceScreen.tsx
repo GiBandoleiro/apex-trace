@@ -181,7 +181,7 @@ export const RaceScreen: React.FC = () => {
       )}
 
       {stage === 'draw' && <DrawOverlay onBack={() => leave('tracks')} />}
-      {stage === 'race' && <RaceHud />}
+      {stage === 'race' && <RaceHud onExit={() => leave('tracks')} />}
       {stage === 'result' && lastResult && (
         <ResultOverlay
           onRetry={retry}
@@ -258,6 +258,8 @@ const DrawOverlay: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
       <div className="spacer" />
 
+      <div className="draw-legend"><span><i className="draw-legend__slow" />Brake / slow</span><span><i className="draw-legend__fast" />Fast / accelerate</span></div>
+
       <div className="draw-bar" style={{ pointerEvents: 'auto' }}>
         <div className="draw-zoom">
           <button type="button" aria-label="Aproximar pista" onClick={() => engine?.zoomTrack(0.78)}>+</button>
@@ -300,8 +302,10 @@ const DrawOverlay: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 /* Race HUD                                                            */
 /* ------------------------------------------------------------------ */
 
-const RaceHud: React.FC = () => {
+const RaceHud: React.FC<{ onExit: () => void }> = ({ onExit }) => {
+  const engine = useEngine();
   const t = useEngineState((s) => s.telemetry);
+  const paused = useEngineState((s) => s.paused);
   const units = useGame((s) => s.profile.settings.units);
   const haptics = useGame((s) => s.profile.settings.hapticFeedback);
   const lastWarn = useRef(0);
@@ -342,6 +346,7 @@ const RaceHud: React.FC = () => {
         </div>
 
         <div className="row" style={{ gap: 8, alignItems: 'flex-start' }}>
+          <button type="button" className="hud-pause" onClick={() => engine?.togglePause()} aria-label={paused ? 'Resume race' : 'Pause race'}>{paused ? '▶' : 'Ⅱ'}</button>
           <div className="hud-block" style={{ alignItems: 'flex-end' }}>
             <span className="hud-block__label">Lap time</span>
             <span className="hud-block__value hud-block__value--sm">{formatTime(t.lapTime)}</span>
@@ -354,6 +359,8 @@ const RaceHud: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {paused && <div className="pause-overlay"><div className="pause-card"><span className="label">RACE CONTROL</span><h2>Paused</h2><p>Take a breath. The race resumes exactly where you left it.</p><div className="row"><Button variant="primary" onClick={() => engine?.togglePause()}>Resume race</Button><Button variant="ghost" onClick={onExit}>Exit race</Button></div><small>Press P to resume</small></div></div>}
 
       <div className="spacer" />
 

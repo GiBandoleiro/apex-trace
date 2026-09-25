@@ -309,6 +309,7 @@ export class RaceSimulation {
         }
         // Aggression: close up to the car ahead on straights.
         this.applySlipstream(e, dt);
+        this.avoidTraffic(e);
       }
 
       v.step(dt, this.raceTime, this.collisions);
@@ -326,6 +327,41 @@ export class RaceSimulation {
           this.entrants[j].vehicle,
           this.collisions,
         );
+      }
+    }
+  }
+
+  /** Look ahead in car coordinates, pick the open side, and brake when boxed in. */
+  private avoidTraffic(entrant: RaceEntrant): void {
+    const v = entrant.vehicle;
+    v.avoidanceOffset = 0;
+    v.trafficSpeedCap = Infinity;
+    const forwardX = Math.cos(v.heading);
+    const forwardZ = Math.sin(v.heading);
+    const rightX = -forwardZ;
+    const rightZ = forwardX;
+    const aggression = entrant.plan?.profile.aggression ?? 0.5;
+    let nearest = 35;
+    for (const rival of this.entrants) {
+      if (rival === entrant || rival.vehicle.finished) continue;
+      const other = rival.vehicle;
+      const dx = other.x - v.x;
+      const dz = other.z - v.z;
+      const ahead = dx * forwardX + dz * forwardZ;
+      const lateral = dx * rightX + dz * rightZ;
+      if (ahead < 0 || ahead > nearest || Math.abs(lateral) > 4.4) continue;
+      nearest = ahead;
+      const projection = this.geometry.project(v.x, v.z);
+      const room = projection.halfWidth * 0.84;
+      const leftOpen = projection.lateral > -room + 2.5;
+      const rightOpen = projection.lateral < room - 2.5;
+      const passRight = lateral <= 0 ? rightOpen : !leftOpen && rightOpen;
+      const passLeft = lateral > 0 ? leftOpen : !rightOpen && leftOpen;
+      if (ahead > 5.2 && (passRight || passLeft)) {
+        v.avoidanceOffset = (passRight ? 1 : -1) * Math.min(3.4, 1.8 + (20 - Math.min(20, ahead)) * 0.09);
+      } else {
+        const margin = 4.5 + (1 - aggression) * 3.5;
+        v.trafficSpeedCap = Math.max(5, other.speed + Math.max(0, ahead - margin) * 0.75);
       }
     }
   }

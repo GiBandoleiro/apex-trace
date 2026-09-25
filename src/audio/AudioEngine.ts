@@ -257,6 +257,11 @@ export class AudioEngine {
     this.windGain = null;
   }
 
+  setRacePaused(paused: boolean): void {
+    if (!this.ctx || !this.engineBus) return;
+    this.engineBus.gain.setTargetAtTime(paused ? 0.035 : 0.55, this.ctx.currentTime, 0.12);
+  }
+
   /**
    * Drives the engine note.
    * @param speedRatio 0..1 of top speed
@@ -308,7 +313,7 @@ export class AudioEngine {
   /* ---------------------------------------------------------------- */
 
   /** Layered trackside ambience: air, distant crowd and a soft pad. */
-  startAmbience(kind: 'menu' | 'track', timeOfDay: 'day' | 'sunset' | 'night' = 'day'): void {
+  startAmbience(kind: 'menu' | 'track', timeOfDay: 'day' | 'sunset' | 'night' = 'day', weather?: string): void {
     if (!this.ctx || !this.musicBus || !this.noiseBuffer) return;
     this.stopAmbience();
     const ctx = this.ctx;
@@ -334,6 +339,22 @@ export class AudioEngine {
     airGain.connect(out);
     air.start();
     this.ambienceNodes.push(air, airFilter, airGain);
+
+    if (kind === 'track' && weather === 'rain') {
+      const rain = ctx.createBufferSource();
+      rain.buffer = this.noiseBuffer;
+      rain.loop = true;
+      const rainFilter = ctx.createBiquadFilter();
+      rainFilter.type = 'highpass';
+      rainFilter.frequency.value = 950;
+      const rainGain = ctx.createGain();
+      rainGain.gain.value = 0.19;
+      rain.connect(rainFilter);
+      rainFilter.connect(rainGain);
+      rainGain.connect(out);
+      rain.start();
+      this.ambienceNodes.push(rain, rainFilter, rainGain);
+    }
 
     // Slow harmonic pad - a low fifth with gentle detune.
     const roots: Record<string, number> = { day: 110, sunset: 98, night: 82.4 };

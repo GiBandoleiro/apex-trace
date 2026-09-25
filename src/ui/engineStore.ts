@@ -17,6 +17,7 @@ interface EngineState {
   loadProgress: number;
   loadLabel: string;
   ready: boolean;
+  paused: boolean;
 
   setPhase: (p: EnginePhase) => void;
   setTelemetry: (t: Telemetry) => void;
@@ -24,6 +25,7 @@ interface EngineState {
   setResult: (r: RaceResult | null) => void;
   setLoad: (p: number, label: string) => void;
   setReady: (r: boolean) => void;
+  setPaused: (p: boolean) => void;
   reset: () => void;
 }
 
@@ -43,6 +45,7 @@ export const useEngineState = create<EngineState>((set) => ({
   loadProgress: 0,
   loadLabel: 'Preparing',
   ready: false,
+  paused: false,
 
   setPhase: (phase) => set({ phase }),
   setTelemetry: (telemetry) => set({ telemetry }),
@@ -50,5 +53,6 @@ export const useEngineState = create<EngineState>((set) => ({
   setResult: (result) => set({ result }),
   setLoad: (loadProgress, loadLabel) => set({ loadProgress, loadLabel }),
   setReady: (ready) => set({ ready }),
-  reset: () => set({ telemetry: null, draw: EMPTY_DRAW, result: null }),
+  setPaused: (paused) => set({ paused }),
+  reset: () => set({ telemetry: null, draw: EMPTY_DRAW, result: null, paused: false }),
 }));

@@ -442,8 +442,8 @@ export class CarVisual {
     this.disposables.push(chrome);
 
     /* --- body ------------------------------------------------------ */
-    const ringPoints = detail === 2 ? 20 : detail === 1 ? 14 : 10;
-    const stationCount = detail === 2 ? 26 : detail === 1 ? 16 : 9;
+    const ringPoints = detail === 2 ? 28 : detail === 1 ? 14 : 10;
+    const stationCount = detail === 2 ? 36 : detail === 1 ? 16 : 9;
     const bodyGeo = loft(bodyStations(d, stationCount), ringPoints, d.length, d.width * (1 + d.flare));
     this.disposables.push(bodyGeo);
     this.body = new THREE.Mesh(bodyGeo, paint);
@@ -541,6 +541,22 @@ export class CarVisual {
 
     /* --- lights ---------------------------------------------------- */
     this.buildLights(d, opts, env);
+    if (detail === 2) {
+      const accent = (w: number, h: number, length: number, x: number, y: number, z: number, material: THREE.Material) => {
+        const geometry = new THREE.BoxGeometry(w, h, length);
+        this.disposables.push(geometry);
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.set(x, y, z);
+        this.chassis.add(mesh);
+      };
+      // Recessed nose grille, lower skirts and door seams give the silhouette scale.
+      accent(d.width * 0.55, 0.16, 0.035, 0, d.rideHeight + 0.25, d.length * 0.49, darkTrim);
+      for (const side of [-1, 1]) {
+        accent(0.075, 0.075, d.length * 0.46, side * d.width * 0.49, d.rideHeight + 0.13, -0.04, carbon);
+        accent(0.035, 0.025, 0.18, side * d.width * 0.515, d.height * 0.49, -d.length * 0.08, chrome);
+        accent(0.025, 0.13, 0.035, side * d.width * 0.505, d.height * 0.46, -d.length * 0.12, darkTrim);
+      }
+    }
 
     /* --- wheels ---------------------------------------------------- */
     const faceTex = wheelFaceTexture(custom.wheelStyle, custom.wheelColor);

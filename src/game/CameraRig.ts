@@ -44,7 +44,7 @@ export class CameraRig {
   private shakeTime = 0;
   private bounds: CameraBounds = { minX: -200, maxX: 200, minZ: -200, maxZ: 200 };
   private minDistance = 22;
-  private maxDistance = 520;
+  private maxDistance = 2200;
 
   shakeEnabled = true;
   yawFollow = true;
@@ -66,6 +66,8 @@ export class CameraRig {
   /** Frames the whole circuit, accounting for the viewport aspect ratio. */
   frameBounds(bounds: CameraBounds, padding = 1.18, instant = true): void {
     this.bounds = bounds;
+    this.yaw = 0;
+    this.desiredYaw = 0;
     // Drawing needs a near-plan view: the layout has to be readable and the
     // line has to land where the finger is. Anything shallower distorts it.
     this.pitch = 1.28;
@@ -83,7 +85,7 @@ export class CameraRig {
     const dist = Math.max(distV, distH);
 
     this.desiredTarget.set(cx, 0, cz);
-    this.desiredDistance = clamp(dist, this.minDistance, this.maxDistance);
+    this.desiredDistance = clamp(dist, this.minDistance, 2200);
     this.maxDistance = this.desiredDistance * 1.35;
     this.minDistance = 18;
     if (instant) {
@@ -107,6 +109,12 @@ export class CameraRig {
 
   zoom(factor: number): void {
     this.desiredDistance = clamp(this.desiredDistance * factor, this.minDistance, this.maxDistance);
+  }
+
+  focusOverview(x: number, z: number): void {
+    if (this.mode !== 'overview') return;
+    this.desiredTarget.set(x, 0, z);
+    this.clampTarget();
   }
 
   private clampTarget(): void {

@@ -56,6 +56,7 @@ export const App: React.FC = () => {
       onDrawState: (d) => useEngineState.getState().setDraw(d),
       onTelemetry: (t) => useEngineState.getState().setTelemetry(t),
       onResult: (r) => useEngineState.getState().setResult(r),
+      onPause: (paused) => useEngineState.getState().setPaused(paused),
       onFps: (fps) => setFps(fps),
       onQualityDrop: (t) =>
         useGame.getState().pushToast(`Graphics lowered to ${t} to keep the frame rate up`, 'info'),

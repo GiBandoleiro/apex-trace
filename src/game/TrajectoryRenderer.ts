@@ -39,7 +39,7 @@ const RIBBON_FRAGMENT = `
     float core = 1.0 - smoothstep(0.0, 0.42, d);
     // Energy flowing along the line in the direction of travel.
     float pulse = 0.5 + 0.5 * sin(vFlow * 6.2831 - uTime * 3.4);
-    vec3 col = vColor * (0.75 + core * 0.9) + vec3(0.9, 0.95, 1.0) * core * 0.55;
+    vec3 col = vColor * (0.85 + core * 0.95) + vec3(0.9, 0.95, 1.0) * core * 0.2;
     float a = (glow * 0.60 + core * 1.0) * uOpacity * (0.88 + pulse * 0.12);
     if (a <= 0.004) discard;
     gl_FragColor = vec4(col, a);
@@ -47,17 +47,14 @@ const RIBBON_FRAGMENT = `
 `;
 
 const speedColor = (ratio: number, out: THREE.Color): THREE.Color => {
-  // ratio = demanded speed / physical limit.
+  // Red marks slow/braking strokes, amber intermediate pace, green high speed.
   const t = clamp01(ratio);
-  if (t < 0.72) {
-    const k = t / 0.72;
-    out.setRGB(lerp(0.24, 0.55, k), lerp(0.88, 0.92, k), lerp(0.58, 0.4, k));
-  } else if (t < 1) {
-    const k = (t - 0.72) / 0.28;
-    out.setRGB(lerp(0.55, 1, k), lerp(0.92, 0.72, k), lerp(0.4, 0.18, k));
+  if (t < 0.55) {
+    const k = t / 0.55;
+    out.setRGB(1, lerp(0.20, 0.72, k), lerp(0.15, 0.17, k));
   } else {
-    const k = clamp01((t - 1) / 0.35);
-    out.setRGB(1, lerp(0.72, 0.2, k), lerp(0.18, 0.16, k));
+    const k = (t - 0.55) / 0.45;
+    out.setRGB(lerp(1, 0.15, k), lerp(0.72, 0.96, k), lerp(0.17, 0.45, k));
   }
   return out;
 };
@@ -223,9 +220,16 @@ export class TrajectoryRenderer {
   }
 
   /** Renders a solved racing path with speed/risk colouring and nodes. */
-  drawPath(path: RacingPath, width = 2.3, showNodes = true): void {
+  drawPath(path: RacingPath, width = 3.15, showNodes = true): void {
     const n = path.count;
     const count = Math.min(n, this.maxSegments);
+    let slowest = Infinity;
+    let fastest = 0;
+    for (let i = 0; i < count; i++) {
+      const speed = path.point(i).targetSpeed;
+      slowest = Math.min(slowest, speed);
+      fastest = Math.max(fastest, speed);
+    }
     const pos = this.geometry.attributes.position as THREE.BufferAttribute;
     const col = this.geometry.attributes.aColor as THREE.BufferAttribute;
     const edge = this.geometry.attributes.aEdge as THREE.BufferAttribute;
@@ -249,9 +253,8 @@ export class TrajectoryRenderer {
       posArr[v + 6] = b.x + nbx; posArr[v + 7] = b.y + 0.28; posArr[v + 8] = b.z + nbz;
       posArr[v + 9] = b.x - nbx; posArr[v + 10] = b.y + 0.28; posArr[v + 11] = b.z - nbz;
 
-      const ratio = a.limitSpeed > 0.01 ? a.targetSpeed / a.limitSpeed : 0;
-      speedColor(Math.max(0.16, Math.min(1.24, a.targetSpeed / 64)), this.color);
-      if (ratio > 1.03) this.color.lerp(new THREE.Color(0xff4d35), Math.min(0.8, (ratio - 1) * 1.4));
+      const relativeSpeed = (a.targetSpeed - slowest) / Math.max(1, fastest - slowest);
+      speedColor(0.08 + relativeSpeed * 0.92, this.color);
       for (let k = 0; k < 4; k++) {
         colArr[v + k * 3] = this.color.r;
         colArr[v + k * 3 + 1] = this.color.g;
