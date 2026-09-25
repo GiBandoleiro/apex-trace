@@ -456,24 +456,28 @@ export const resolveCarCollision = (
   const rel = (bvx - avx) * nx + (bvz - avz) * nz;
   if (rel > 0) return; // already separating
 
-  const impulse = clamp(-rel * 0.32, 0, 9);
-  const aScale = mb / total;
-  const bScale = ma / total;
-
-  // Nudge headings apart and shave a little speed - contact should cost time,
-  // not end the race.
-  a.velHeading -= nx * 0 + Math.atan2(nz, nx) * 0; // keep direction stable
-  a.speed = Math.max(0, a.speed - impulse * aScale * 0.35);
-  b.speed = Math.max(0, b.speed - impulse * bScale * 0.35);
-  a.slipAngle = clamp(a.slipAngle - impulse * 0.02 * aScale, -0.7, 0.7);
-  b.slipAngle = clamp(b.slipAngle + impulse * 0.02 * bScale, -0.7, 0.7);
+  // Normal impulse with mild restitution. Rebuild each velocity vector so a
+  // side hit actually rotates the car instead of only reducing a speed scalar.
+  const restitution = 0.18;
+  const impulse = clamp(-(1 + restitution) * rel / (1 / ma + 1 / mb), 0, 26000);
+  const nextAvx = avx - (impulse / ma) * nx;
+  const nextAvz = avz - (impulse / ma) * nz;
+  const nextBvx = bvx + (impulse / mb) * nx;
+  const nextBvz = bvz + (impulse / mb) * nz;
+  a.speed = Math.max(0, Math.hypot(nextAvx, nextAvz) * 0.94);
+  b.speed = Math.max(0, Math.hypot(nextBvx, nextBvz) * 0.94);
+  if (a.speed > 0.5) a.velHeading = Math.atan2(nextAvz, nextAvx);
+  if (b.speed > 0.5) b.velHeading = Math.atan2(nextBvz, nextBvx);
+  a.slipAngle = clamp(a.slipAngle - impulse / ma * 0.018, -0.7, 0.7);
+  b.slipAngle = clamp(b.slipAngle + impulse / mb * 0.018, -0.7, 0.7);
+  const impact = impulse / Math.min(ma, mb);
 
   if (impulse > 1.2) {
     a.contacts++;
     b.contacts++;
     collisions.push({
       kind: 'car',
-      intensity: clamp01(impulse / 9),
+      intensity: clamp01(impact / 10),
       x: (a.x + b.x) * 0.5,
       z: (a.z + b.z) * 0.5,
     });

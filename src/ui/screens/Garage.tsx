@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Button,
   LockIcon,
@@ -39,6 +39,7 @@ export const Garage: React.FC = () => {
   const buyCar = useGame((s) => s.buyCar);
   const buyUpgrade = useGame((s) => s.buyUpgrade);
   const engine = useEngine();
+  const dragX = useRef<number | null>(null);
 
   const level = selectLevel(profile);
   const active = selectActiveCar(profile);
@@ -72,7 +73,7 @@ export const Garage: React.FC = () => {
   const canBuy = !isOwned && level.level >= def.unlockLevel && profile.coins >= def.price;
 
   return (
-    <div className="screen screen--scrim">
+    <div className="screen screen--garage">
       <TopBar
         title="Garage"
         subtitle={`${CAR_CLASS_LABEL[def.carClass]} · PR ${rating}`}
@@ -82,12 +83,26 @@ export const Garage: React.FC = () => {
 
       <div className="garage">
         {/* The 3D showcase car is rendered behind this panel by the engine. */}
-        <div className="garage__stage">
-          <img
-            src={carThumbnail(def, owned?.customization ?? def.defaults, 560, 300)}
-            alt={`${def.make} ${def.name}`}
-            style={{ width: '86%', maxWidth: 560, filter: 'drop-shadow(0 22px 34px rgba(0,0,0,0.55))' }}
-          />
+        <div className="garage__stage" aria-label="Visualização 3D do carro"
+          onPointerDown={(event) => {
+            if ((event.target as HTMLElement).closest('button')) return;
+            dragX.current = event.clientX;
+            event.currentTarget.setPointerCapture(event.pointerId);
+          }}
+          onPointerMove={(event) => {
+            if (dragX.current === null) return;
+            engine?.rotateShowcase((event.clientX - dragX.current) * 0.012);
+            dragX.current = event.clientX;
+          }}
+          onPointerUp={() => { dragX.current = null; }}
+          onPointerCancel={() => { dragX.current = null; }}
+          onWheel={(event) => engine?.zoomShowcase(Math.exp(event.deltaY * 0.0012))}
+        >
+          <div className="garage__view-label">ARRASTE PARA GIRAR · USE + / − PARA ZOOM</div>
+          <div className="garage__zoom">
+            <button type="button" aria-label="Aproximar carro" onClick={() => engine?.zoomShowcase(0.8)}>+</button>
+            <button type="button" aria-label="Afastar carro" onClick={() => engine?.zoomShowcase(1.25)}>−</button>
+          </div>
           <div style={{ position: 'absolute', left: 18, bottom: 16 }}>
             <p className="label" style={{ marginBottom: 4 }}>{def.make}</p>
             <h2 className="display" style={{ fontSize: 'clamp(22px, 3.6vmin, 36px)' }}>

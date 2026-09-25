@@ -118,6 +118,8 @@ export class GameEngine {
   private sim: RaceSimulation | null = null;
   private carVisuals = new Map<string, CarVisual>();
   private showcaseCar: CarVisual | null = null;
+  private showcaseYaw = 0;
+  private showcaseDistance = 10;
 
   private skid: SkidMarks;
   private particles: ParticleSystem;
@@ -405,6 +407,18 @@ export class GameEngine {
     audio.startAmbience('menu', this.trackDef?.timeOfDay ?? 'day');
   }
 
+  zoomTrack(factor: number): void {
+    if (this.phase === 'draw') this.rig.zoom(factor);
+  }
+
+  rotateShowcase(delta: number): void {
+    this.showcaseYaw += delta;
+  }
+
+  zoomShowcase(factor: number): void {
+    this.showcaseDistance = Math.max(6, Math.min(28, this.showcaseDistance * factor));
+  }
+
   /** Swaps the showcased car in place - used when browsing the garage. */
   updateShowcaseCar(carId: string, custom: CarCustomization): void {
     if (!this.geometry || this.phase !== 'menu') return;
@@ -473,7 +487,7 @@ export class GameEngine {
     this.skid.clear();
     this.particles.clear();
     this.rig.mode = 'overview';
-    this.rig.frameBounds(this.geometry!.bounds, 1.12, true);
+    this.rig.frameBounds(this.geometry!.bounds, 1.48, true);
     this.trajectory.clear();
     this.trajectory.visible = true;
     this.danger.clear();
@@ -508,7 +522,13 @@ export class GameEngine {
   private onStrokeMove(p: StrokePoint): void {
     if (this.phase !== 'draw' || this.activeStroke.length === 0) return;
     this.appendStrokeSample(p);
-    this.trajectory.drawPolyline(this.livePoints, 1.35);
+    const speeds = this.activeStroke.slice(1).map((sample, i) => {
+      const previous = this.activeStroke[i];
+      return Math.hypot(sample.x - previous.x, sample.z - previous.z) / Math.max(1 / 120, sample.t - previous.t);
+    });
+    const sorted = [...speeds].sort((a, b) => a - b);
+    const median = sorted[Math.floor(sorted.length / 2)] || 1;
+    this.trajectory.drawPolyline(this.livePoints, 2.5, speeds.map((speed) => Math.max(0.12, Math.min(1.2, 0.58 * speed / median))));
   }
 
   private appendStrokeSample(p: StrokePoint): void {
@@ -517,7 +537,9 @@ export class GameEngine {
     const last = this.activeStroke[this.activeStroke.length - 1];
     if (last && Math.hypot(hit.x - last.x, hit.z - last.z) < 0.9) return;
     this.activeStroke.push({ x: hit.x, z: hit.z, t: p.t });
-    this.livePoints.push({ x: hit.x, z: hit.z, y: 0.2 });
+    const station = this.geometry?.project(hit.x, hit.z).index;
+    const height = station === undefined ? 0 : this.geometry!.point(station).y;
+    this.livePoints.push({ x: hit.x, z: hit.z, y: height });
   }
 
   private onStrokeEnd(): void {
@@ -741,7 +763,8 @@ export class GameEngine {
       return;
     }
     const p = this.showcaseCar.root.position;
-    this.rig.showcase(new THREE.Vector3(p.x, 1.1, p.z), 15, dt, this.elapsed);
+    this.rig.showcase(new THREE.Vector3(p.x, 1.1, p.z), this.showcaseDistance, dt, this.elapsed);
+    this.rig.yaw += this.showcaseYaw;
     this.rig.update(dt);
     this.showcaseCar.update({
       speed: 0,

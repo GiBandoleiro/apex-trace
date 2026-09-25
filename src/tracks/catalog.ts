@@ -400,6 +400,28 @@ const VOLCANIC_NODES: TrackNode[] = [
   n(-22, -32, 8.2),
 ];
 
+/* 12 - Storm Quay: wet harbour loop with an offset inner chicane. */
+const STORM_QUAY_NODES: TrackNode[] = [
+  n(0, 0, 8), n(82, -4, 8), n(170, 0, 7.6), n(224, 24, 7),
+  n(244, 68, 6.8), n(224, 108, 7), n(178, 126, 7.2),
+  n(144, 112, 6.8), n(112, 130, 6.4), n(102, 166, 6.8),
+  n(64, 190, 7.2), n(4, 196, 7.5), n(-54, 184, 7.4),
+  n(-108, 154, 7), n(-144, 112, 6.8), n(-150, 66, 7),
+  n(-120, 42, 7.2), n(-88, 50, 7.2), n(-70, 20, 7),
+  n(-84, -18, 7.2), n(-48, -36, 7.6), n(-16, -22, 8),
+];
+
+/* 13 - Mistwood: technical forest loop with low visibility. */
+const MISTWOOD_NODES: TrackNode[] = [
+  n(0, 0, 7.4), n(68, -4, 7.4), n(124, 10, 7), n(154, 46, 6.6),
+  n(140, 88, 6.4), n(104, 108, 6.6), n(88, 146, 6.4),
+  n(122, 174, 6.6), n(156, 170, 6.8), n(174, 204, 6.6),
+  n(144, 230, 6.8), n(90, 230, 7), n(34, 210, 7.2),
+  n(-18, 188, 7), n(-62, 158, 6.6), n(-84, 118, 6.4),
+  n(-68, 80, 6.6), n(-92, 48, 6.4), n(-122, 18, 6.6),
+  n(-112, -20, 7), n(-66, -38, 7.2), n(-24, -24, 7.4),
+];
+
 export const TRACKS: TrackDefinition[] = [
   {
     id: 'sunset-circuit',
@@ -654,6 +676,24 @@ export const TRACKS: TrackDefinition[] = [
     }),
     tagline: 'Black rock, orange sky, no run-off.',
     seed: 1111,
+  },
+  {
+    id: 'storm-quay', name: 'Storm Quay', country: 'Port Halden',
+    theme: 'industrial', difficulty: 4, laps: 3, timeOfDay: 'night',
+    weather: 'rain', curbStyle: 'yellow', runoff: 'concrete',
+    halfWidth: 7.2, nodes: STORM_QUAY_NODES, unlockLevel: 0, unlockCost: 0,
+    paceFactor: 0.92, palette: tint(NIGHT, { sky: '#1b2736', fog: '#344457',
+      fogDensity: 0.006, ambientColor: '#647da0', groundColor: '#252e36' }),
+    tagline: 'Rain, floodlights and a harbour chicane.', seed: 1212,
+  },
+  {
+    id: 'mistwood', name: 'Mistwood', country: 'Elden Vale',
+    theme: 'forest', difficulty: 4, laps: 3, timeOfDay: 'day',
+    weather: 'fog', curbStyle: 'red', runoff: 'grass',
+    halfWidth: 6.8, nodes: MISTWOOD_NODES, unlockLevel: 7, unlockCost: 5200,
+    paceFactor: 0.9, palette: tint(DAY, { sky: '#8d9e9d', fog: '#82958c',
+      fogDensity: 0.009, sunIntensity: 1.35, ambientColor: '#8ca393', groundColor: '#34483a' }),
+    tagline: 'Find the apex before it finds you.', seed: 1313,
   },
 ];
 

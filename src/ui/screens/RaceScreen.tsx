@@ -13,8 +13,6 @@ import { audio } from '@/audio/AudioEngine';
 
 type Stage = 'preview' | 'draw' | 'race' | 'result';
 
-const TIME_LABEL: Record<string, string> = { day: 'Day', sunset: 'Sunset', night: 'Night' };
-
 export const RaceScreen: React.FC = () => {
   const engine = useEngine();
   const request = useGame((s) => s.raceRequest);
@@ -142,7 +140,7 @@ export const RaceScreen: React.FC = () => {
                   <StatTile label="Laps" value={request.laps} />
                   <StatTile label="Length" value={`${(trackStats.lengthM / 1000).toFixed(2)} km`} />
                   <StatTile label="Turns" value={trackStats.corners} />
-                  <StatTile label="Weather" value={TIME_LABEL[track.timeOfDay]} />
+                  <StatTile label="Weather" value={track.weather.toUpperCase()} />
                   <StatTile label="Opponents" value={request.opponents} />
                   <StatTile label="Grade" value={<Stars value={track.difficulty} />} />
                   <StatTile
@@ -261,6 +259,10 @@ const DrawOverlay: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       <div className="spacer" />
 
       <div className="draw-bar" style={{ pointerEvents: 'auto' }}>
+        <div className="draw-zoom">
+          <button type="button" aria-label="Aproximar pista" onClick={() => engine?.zoomTrack(0.78)}>+</button>
+          <button type="button" aria-label="Afastar pista" onClick={() => engine?.zoomTrack(1.28)}>−</button>
+        </div>
         <Button
           variant="ghost"
           size="sm"
@@ -368,6 +370,11 @@ const RaceHud: React.FC = () => {
               className="grip-meter__fill"
               style={{ width: `${gripPct}%`, background: gripColor }}
             />
+          </div>
+          <div className="hud-dynamics">
+            <span>{t.surface === 'track' ? 'ON TRACK' : t.surface.toUpperCase()}</span>
+            <span>GRIP {Math.round(gripPct)}%</span>
+            {t.nitro > 0 && <span>BOOST {Math.round(t.nitro * 100)}%</span>}
           </div>
           <div className="speedo">
             <span className="speedo__value">{Math.round(speed)}</span>

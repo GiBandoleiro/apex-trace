@@ -35,12 +35,12 @@ const RIBBON_FRAGMENT = `
   void main() {
     float d = abs(vEdge);
     // Soft outer glow with a tight bright core.
-    float glow = smoothstep(1.0, 0.25, d);
-    float core = smoothstep(0.42, 0.0, d);
+    float glow = 1.0 - smoothstep(0.22, 1.0, d);
+    float core = 1.0 - smoothstep(0.0, 0.42, d);
     // Energy flowing along the line in the direction of travel.
     float pulse = 0.5 + 0.5 * sin(vFlow * 6.2831 - uTime * 3.4);
     vec3 col = vColor * (0.75 + core * 0.9) + vec3(0.9, 0.95, 1.0) * core * 0.55;
-    float a = (glow * 0.4 + core * 0.85) * uOpacity * (0.82 + pulse * 0.18);
+    float a = (glow * 0.60 + core * 1.0) * uOpacity * (0.88 + pulse * 0.12);
     if (a <= 0.004) discard;
     gl_FragColor = vec4(col, a);
   }
@@ -115,6 +115,7 @@ export class TrajectoryRenderer {
       transparent: true,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
     });
 
     this.ribbon = new THREE.Mesh(this.geometry, this.material);
@@ -164,7 +165,7 @@ export class TrajectoryRenderer {
    */
   drawPolyline(
     pts: Array<{ x: number; z: number; y?: number }>,
-    width = 1.5,
+    width = 2.4,
     risk?: number[],
   ): void {
     if (pts.length < 2) {
@@ -191,8 +192,8 @@ export class TrajectoryRenderer {
       dz /= l;
       const nx = -dz * width;
       const nz = dx * width;
-      const ay = (a.y ?? 0) + 0.12;
-      const by = (b.y ?? 0) + 0.12;
+      const ay = (a.y ?? 0) + 0.34;
+      const by = (b.y ?? 0) + 0.34;
 
       const v = i * 4 * 3;
       posArr[v] = a.x + nx; posArr[v + 1] = ay; posArr[v + 2] = a.z + nz;
@@ -222,7 +223,7 @@ export class TrajectoryRenderer {
   }
 
   /** Renders a solved racing path with speed/risk colouring and nodes. */
-  drawPath(path: RacingPath, width = 1.6, showNodes = true): void {
+  drawPath(path: RacingPath, width = 2.3, showNodes = true): void {
     const n = path.count;
     const count = Math.min(n, this.maxSegments);
     const pos = this.geometry.attributes.position as THREE.BufferAttribute;
@@ -243,13 +244,14 @@ export class TrajectoryRenderer {
       const nbz = b.tx * width;
 
       const v = i * 4 * 3;
-      posArr[v] = a.x + nx; posArr[v + 1] = a.y + 0.12; posArr[v + 2] = a.z + nz;
-      posArr[v + 3] = a.x - nx; posArr[v + 4] = a.y + 0.12; posArr[v + 5] = a.z - nz;
-      posArr[v + 6] = b.x + nbx; posArr[v + 7] = b.y + 0.12; posArr[v + 8] = b.z + nbz;
-      posArr[v + 9] = b.x - nbx; posArr[v + 10] = b.y + 0.12; posArr[v + 11] = b.z - nbz;
+      posArr[v] = a.x + nx; posArr[v + 1] = a.y + 0.28; posArr[v + 2] = a.z + nz;
+      posArr[v + 3] = a.x - nx; posArr[v + 4] = a.y + 0.28; posArr[v + 5] = a.z - nz;
+      posArr[v + 6] = b.x + nbx; posArr[v + 7] = b.y + 0.28; posArr[v + 8] = b.z + nbz;
+      posArr[v + 9] = b.x - nbx; posArr[v + 10] = b.y + 0.28; posArr[v + 11] = b.z - nbz;
 
       const ratio = a.limitSpeed > 0.01 ? a.targetSpeed / a.limitSpeed : 0;
-      speedColor(ratio, this.color);
+      speedColor(Math.max(0.16, Math.min(1.24, a.targetSpeed / 64)), this.color);
+      if (ratio > 1.03) this.color.lerp(new THREE.Color(0xff4d35), Math.min(0.8, (ratio - 1) * 1.4));
       for (let k = 0; k < 4; k++) {
         colArr[v + k * 3] = this.color.r;
         colArr[v + k * 3 + 1] = this.color.g;
@@ -274,7 +276,7 @@ export class TrajectoryRenderer {
       let idx = 0;
       for (let i = 0; i < n && idx < 220; i += stride) {
         const p = path.point(i);
-        m4.makeTranslation(p.x, p.y + 0.14, p.z);
+        m4.makeTranslation(p.x, p.y + 0.32, p.z);
         this.nodeMesh.setMatrixAt(idx++, m4);
       }
       this.nodeMesh.count = idx;
