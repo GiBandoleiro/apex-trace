@@ -7,6 +7,7 @@
  */
 
 import type { EnvironmentPalette, TrackDefinition, TrackNode } from './types';
+import { redesignedNodes } from './layouts';
 
 const DAY: EnvironmentPalette = {
   sky: '#8fb6dd',
@@ -696,6 +697,76 @@ export const TRACKS: TrackDefinition[] = [
     tagline: 'Find the apex before it finds you.', seed: 1313,
   },
 ];
+
+// Keep existing IDs and player records while replacing every centreline.
+for (const track of TRACKS) track.nodes = redesignedNodes(track.id, track.nodes);
+
+TRACKS.push(
+  {
+    id: 'red-rock-ring', name: 'Red Rock Ring', country: 'Kharan Mesa',
+    theme: 'desert', difficulty: 3, laps: 3, timeOfDay: 'sunset',
+    weather: 'clear', curbStyle: 'yellow', runoff: 'sand',
+    halfWidth: 9, nodes: redesignedNodes('red-rock-ring', []),
+    unlockLevel: 0, unlockCost: 0, paceFactor: 1.04,
+    palette: tint(SUNSET, { sky: '#bb8665', fog: '#ad8064', groundColor: '#806547' }),
+    tagline: 'A long blast through red stone and sweeping bends.', seed: 1414,
+  },
+  {
+    id: 'silver-lake', name: 'Silver Lake', country: 'Elden Highlands',
+    theme: 'forest', difficulty: 3, laps: 3, timeOfDay: 'day',
+    weather: 'clear', curbStyle: 'blue', runoff: 'grass',
+    halfWidth: 8.2, nodes: redesignedNodes('silver-lake', []),
+    unlockLevel: 0, unlockCost: 0, paceFactor: 1.01,
+    palette: tint(DAY, { sky: '#92b7c7', fog: '#a2bfc4', groundColor: '#435c49' }),
+    tagline: 'Open straights lead to a technical lakeside sector.', seed: 1515,
+  },
+  {
+    id: 'midnight-express', name: 'Midnight Express', country: 'Arden Bay',
+    theme: 'nightCity', difficulty: 4, laps: 3, timeOfDay: 'night',
+    weather: 'clear', curbStyle: 'blue', runoff: 'concrete',
+    halfWidth: 8, nodes: redesignedNodes('midnight-express', []),
+    unlockLevel: 4, unlockCost: 2600, paceFactor: 1.08,
+    palette: NIGHT,
+    tagline: 'A fast urban opening into tight floodlit corners.', seed: 1616,
+  },
+  {
+    id: 'copper-canyon', name: 'Copper Canyon', country: 'Kharan Frontier',
+    theme: 'desert', difficulty: 4, laps: 3, timeOfDay: 'day',
+    weather: 'clear', curbStyle: 'yellow', runoff: 'sand',
+    halfWidth: 8.2, nodes: redesignedNodes('copper-canyon', []),
+    unlockLevel: 6, unlockCost: 4300, paceFactor: 1.02,
+    palette: tint(DAY, { sky: '#d4ad82', fog: '#c9a881', groundColor: '#806d50' }),
+    tagline: 'Brake hard where the canyon road doubles back.', seed: 1717,
+  },
+  {
+    id: 'north-harbour', name: 'North Harbour', country: 'Norhavn Port',
+    theme: 'industrial', difficulty: 4, laps: 3, timeOfDay: 'day',
+    weather: 'rain', curbStyle: 'yellow', runoff: 'concrete',
+    halfWidth: 7.8, nodes: redesignedNodes('north-harbour', []),
+    unlockLevel: 8, unlockCost: 6200, paceFactor: 0.96,
+    palette: tint(DAY, { sky: '#8299a8', fog: '#8499a4', groundColor: '#424e54' }),
+    tagline: 'Wet docks, long straights and a narrow infield.', seed: 1818,
+  },
+  {
+    id: 'emerald-valley', name: 'Emerald Valley', country: 'Val Terrano',
+    theme: 'alpine', difficulty: 4, laps: 3, timeOfDay: 'day',
+    weather: 'fog', curbStyle: 'red', runoff: 'grass',
+    halfWidth: 8.2, nodes: redesignedNodes('emerald-valley', []),
+    unlockLevel: 10, unlockCost: 8600, paceFactor: 0.96,
+    palette: tint(DAY, { sky: '#a2b7ad', fog: '#9eb3a9', fogDensity: 0.0065,
+      groundColor: '#3d5841' }),
+    tagline: 'A fast valley road disappearing into the mist.', seed: 1919,
+  },
+  {
+    id: 'solstice-speedway', name: 'Solstice Speedway', country: 'Verano Coast',
+    theme: 'grand', difficulty: 5, laps: 4, timeOfDay: 'sunset',
+    weather: 'clear', curbStyle: 'red', runoff: 'gravel',
+    halfWidth: 9.5, nodes: redesignedNodes('solstice-speedway', []),
+    unlockLevel: 14, unlockCost: 13500, paceFactor: 1.14,
+    palette: SUNSET,
+    tagline: 'The longest full-throttle run in the championship.', seed: 2020,
+  },
+);
 
 export const getTrack = (id: string): TrackDefinition =>
   TRACKS.find((t) => t.id === id) ?? TRACKS[0];
