@@ -181,9 +181,21 @@ export class GameEngine {
     this.scene.add(this.particles.points);
     this.scene.add(this.trajectory.group);
     this.scene.add(this.danger.group);
+    const floorCanvas = document.createElement('canvas');
+    floorCanvas.width = floorCanvas.height = 256;
+    const floorContext = floorCanvas.getContext('2d');
+    if (floorContext) {
+      const glow = floorContext.createRadialGradient(128, 128, 16, 128, 128, 128);
+      glow.addColorStop(0, 'rgba(84, 99, 121, 0.28)');
+      glow.addColorStop(0.5, 'rgba(52, 62, 79, 0.16)');
+      glow.addColorStop(1, 'rgba(20, 26, 38, 0)');
+      floorContext.fillStyle = glow;
+      floorContext.fillRect(0, 0, 256, 256);
+    }
+    const floorTexture = new THREE.CanvasTexture(floorCanvas);
     const stageFloor = new THREE.Mesh(
-      new THREE.PlaneGeometry(120, 120),
-      new THREE.MeshStandardMaterial({ color: 0x222a36, roughness: 0.84, metalness: 0.06 }),
+      new THREE.PlaneGeometry(36, 36),
+      new THREE.MeshBasicMaterial({ map: floorTexture, transparent: true, depthWrite: false }),
     );
     stageFloor.rotation.x = -Math.PI / 2;
     stageFloor.position.y = -0.08;
@@ -429,7 +441,8 @@ export class GameEngine {
     this.showcaseStage.visible = true;
     this.scene.background = new THREE.Color(0x0b121d);
 
-    this.rig.showcase(new THREE.Vector3(p.x, 1.2, p.z), 16, 0, 0);
+    this.rig.distance = this.showcaseDistance;
+    this.rig.showcase(new THREE.Vector3(p.x, 1.2, p.z), this.showcaseDistance, 0, 0);
     this.setPhase('menu');
     if (this.input) this.input.drawMode = false;
     audio.startAmbience('menu', this.trackDef?.timeOfDay ?? 'day');
