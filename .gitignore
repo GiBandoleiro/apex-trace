@@ -1,0 +1,17 @@
+node_modules
+dist
+dist-ssr
+.vercel
+*.local
+.DS_Store
+.env
+.env.*
+!.env.example
+npm-debug.log*
+yarn-error.log*
+.vscode/*
+!.vscode/extensions.json
+.idea
+
+# Local agent settings
+.claude/
