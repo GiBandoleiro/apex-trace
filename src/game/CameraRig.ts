@@ -174,8 +174,8 @@ export class CameraRig {
   showcase(center: THREE.Vector3, radius: number, dt: number, time: number): void {
     this.mode = 'showcase';
     this.target.copy(center);
-    this.yaw = time * 0.09;
-    this.pitch = 0.58 + Math.sin(time * 0.16) * 0.07;
+    this.yaw = Math.PI + 0.45 + time * 0.025;
+    this.pitch = 0.39 + Math.sin(time * 0.12) * 0.035;
     this.distance = damp(this.distance, radius, 1.4, dt);
   }
 

@@ -105,6 +105,7 @@ export class GameEngine {
   private paused = false;
 
   private trackScene: TrackScene | null = null;
+  private showcaseStage = new THREE.Group();
   private geometry: TrackGeometry | null = null;
   private trackDef: TrackDefinition | null = null;
 
@@ -180,6 +181,23 @@ export class GameEngine {
     this.scene.add(this.particles.points);
     this.scene.add(this.trajectory.group);
     this.scene.add(this.danger.group);
+    const stageFloor = new THREE.Mesh(
+      new THREE.PlaneGeometry(120, 120),
+      new THREE.MeshStandardMaterial({ color: 0x222a36, roughness: 0.84, metalness: 0.06 }),
+    );
+    stageFloor.rotation.x = -Math.PI / 2;
+    stageFloor.position.y = -0.08;
+    stageFloor.receiveShadow = this.quality.shadows;
+    this.showcaseStage.add(stageFloor);
+    const contactShadow = new THREE.Mesh(
+      new THREE.CircleGeometry(1.65, 48),
+      new THREE.MeshBasicMaterial({ color: 0x020408, transparent: true, opacity: 0.14, depthWrite: false }),
+    );
+    contactShadow.rotation.x = -Math.PI / 2;
+    contactShadow.position.y = -0.055;
+    this.showcaseStage.add(contactShadow);
+    this.showcaseStage.visible = false;
+    this.scene.add(this.showcaseStage);
 
     this.sun.castShadow = this.quality.shadows;
     this.configureShadow();
@@ -276,6 +294,14 @@ export class GameEngine {
     this.clearRace();
     this.disposeShowcase();
     this.trackScene?.dispose();
+    this.showcaseStage.traverse((object) => {
+      const mesh = object as THREE.Mesh;
+      if (mesh.geometry) mesh.geometry.dispose();
+      if (mesh.material) {
+        const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+        for (const material of materials) material.dispose();
+      }
+    });
     this.skid.dispose();
     this.particles.dispose();
     this.motes?.dispose();
@@ -398,6 +424,11 @@ export class GameEngine {
     this.scene.add(visual.root);
     this.showcaseCar = visual;
 
+    if (this.trackScene) this.trackScene.group.visible = false;
+    this.showcaseStage.position.set(p.x, p.y, p.z);
+    this.showcaseStage.visible = true;
+    this.scene.background = new THREE.Color(0x0b121d);
+
     this.rig.showcase(new THREE.Vector3(p.x, 1.2, p.z), 16, 0, 0);
     this.setPhase('menu');
     if (this.input) this.input.drawMode = false;
@@ -461,6 +492,9 @@ export class GameEngine {
     this.paused = false;
     this.callbacks.onPause?.(false);
     await this.loadTrack(setup.track.id);
+    if (this.trackScene) this.trackScene.group.visible = true;
+    this.showcaseStage.visible = false;
+    this.applyPalette(setup.track);
     this.clearRace();
     this.disposeShowcase();
 
@@ -706,7 +740,10 @@ export class GameEngine {
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.quality.maxPixelRatio));
         this.renderer.shadowMap.enabled = this.quality.shadows;
         this.sun.castShadow = this.quality.shadows;
-        if (this.trackDef) this.applyPalette(this.trackDef);
+        if (this.trackDef) {
+          this.applyPalette(this.trackDef);
+          if (this.phase === 'menu') this.scene.background = new THREE.Color(0x0b121d);
+        }
         this.callbacks.onQualityDrop?.(next);
       }
     }
