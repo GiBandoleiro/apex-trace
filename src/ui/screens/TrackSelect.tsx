@@ -129,6 +129,11 @@ export const TrackSelect: React.FC = () => {
                   <span className="badge" style={{ position: 'absolute', top: 10, left: 10 }}>
                     {TIME_LABEL[t.timeOfDay]}
                   </span>
+                  {t.weather !== 'clear' && (
+                    <span className="badge badge--accent" style={{ position: 'absolute', top: 40, left: 10 }}>
+                      {WEATHER_LABEL[t.weather]}
+                    </span>
+                  )}
                   {!unlocked && (
                     <span
                       className={`badge ${levelLocked ? 'badge--lock' : 'badge--accent'}`}

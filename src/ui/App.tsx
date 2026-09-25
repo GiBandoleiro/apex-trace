@@ -119,7 +119,7 @@ export const App: React.FC = () => {
   /* ---- Keep the showcase car in sync with the selected car ---------- */
   useEffect(() => {
     const eng = engineRef.current;
-    if (!eng || !ready || screen === 'race') return;
+    if (!eng || !ready || screen === 'race' || screen === 'garage') return;
     const active = selectActiveCar(profile);
     eng.updateShowcaseCar(active.id, active.customization);
   }, [profile.selectedCarId, ready, screen, profile]);
