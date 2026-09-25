@@ -22,16 +22,16 @@ const DAY: EnvironmentPalette = {
 };
 
 const SUNSET: EnvironmentPalette = {
-  sky: '#f5a25c',
-  fog: '#e08c5a',
-  fogDensity: 0.0032,
+  sky: '#d6996c',
+  fog: '#a9846c',
+  fogDensity: 0.003,
   sunColor: '#ffd3ab',
-  sunIntensity: 3.2,
+  sunIntensity: 2.45,
   sunDirection: [-0.62, 0.54, 0.42],
-  ambientColor: '#6f86c0',
-  ambientIntensity: 1.0,
-  groundColor: '#5a3a2c',
-  terrainTint: '#f4ece6',
+  ambientColor: '#788eb7',
+  ambientIntensity: 0.8,
+  groundColor: '#4e493a',
+  terrainTint: '#d7d4c6',
 };
 
 const NIGHT: EnvironmentPalette = {

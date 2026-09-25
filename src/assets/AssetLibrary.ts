@@ -94,7 +94,7 @@ export class AssetLibrary {
     const small = q.detailTextureSize;
 
     const jobs: Array<{ id: SurfaceId; field: FieldFn; size: number; strength: number }> = [
-      { id: 'asphalt', field: asphaltField(17), size: big, strength: 2.1 },
+      { id: 'asphalt', field: asphaltField(17), size: big, strength: 1.5 },
       { id: 'grass', field: grassField(44), size: small, strength: 2.6 },
       { id: 'curbRed', field: curbField([0.62, 0.075, 0.07], [0.82, 0.8, 0.78], 120), size: small, strength: 2.8 },
       { id: 'gravel', field: gravelField(61), size: small, strength: 1.9 },

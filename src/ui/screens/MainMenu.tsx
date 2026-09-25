@@ -27,7 +27,7 @@ export const MainMenu: React.FC = () => {
   const car = getCar(active.id);
 
   return (
-    <div className="screen screen--menu">
+    <div className="screen">
       <header className="topbar">
         <div className="topbar__title">
           <div className="logo" style={{ textAlign: 'left', fontSize: 'clamp(30px, 6vmin, 56px)' }}>

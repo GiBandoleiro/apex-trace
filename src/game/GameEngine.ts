@@ -12,7 +12,7 @@ import { AssetLibrary } from '@/assets/AssetLibrary';
 import { CarVisual } from '@/cars/CarBuilder';
 import { getCar } from '@/cars/catalog';
 import type { CarCustomization } from '@/cars/types';
-import { profileFromStrokes, RacingPath, type DrawnSample } from '@/physics/RacingPath';
+import { paceFromGesture, profileFromStrokes, RacingPath, type DrawnSample } from '@/physics/RacingPath';
 import { computeLimits, WEATHER_GRIP } from '@/physics/vehicleStats';
 import { applyUpgrades } from '@/cars/catalog';
 import { RaceSimulation, type RaceResult, type RaceSetup, type Standing } from '@/systems/RaceSimulation';
@@ -30,13 +30,8 @@ import { clamp, clamp01, damp } from '@/utils/math';
 
 export type EnginePhase = 'idle' | 'loading' | 'menu' | 'draw' | 'countdown' | 'racing' | 'finished';
 
-/**
- * How far past the physical cornering limit the player's drawn line is allowed
- * to ask for. Above 1 the car will understeer wide instead of obeying - which
- * is the whole point of the mechanic - but an unbounded target would make an
- * over-drawn line unrecoverable rather than merely slow.
- */
-const PLAYER_OVERDRIVE = 1.6;
+/** Leaves a little grip in reserve so the player can stay on the drawn path. */
+const PLAYER_GRIP_MARGIN = 0.98;
 
 /**
  * Peak grip demand and a realistic lap estimate for a solved path. The estimate
@@ -313,7 +308,7 @@ export class GameEngine {
     this.scene.fog = new THREE.FogExp2(new THREE.Color(p.fog), p.fogDensity);
 
     this.sun.color = new THREE.Color(p.sunColor);
-    this.sun.intensity = p.sunIntensity;
+    this.sun.intensity = p.sunIntensity * (this.quality.shadows ? 1 : 0.58);
     const d = p.sunDirection;
     this.sun.position.set(d[0] * 180, d[1] * 180, d[2] * 180);
     this.sun.target.position.set(0, 0, 0);
@@ -321,13 +316,13 @@ export class GameEngine {
 
     this.hemi.color = new THREE.Color(p.ambientColor);
     this.hemi.groundColor = new THREE.Color(p.groundColor);
-    this.hemi.intensity = p.ambientIntensity;
+    this.hemi.intensity = p.ambientIntensity * (this.quality.shadows ? 1 : 0.8);
 
     this.fill.color = new THREE.Color(p.ambientColor);
-    this.fill.intensity = def.timeOfDay === 'night' ? 0.1 : 0.32;
+    this.fill.intensity = (def.timeOfDay === 'night' ? 0.1 : 0.32) * (this.quality.shadows ? 1 : 0.65);
     this.fill.position.set(-d[0] * 120, 90, -d[2] * 120);
 
-    this.renderer.toneMappingExposure = def.timeOfDay === 'night' ? 1.45 : 1.15;
+    this.renderer.toneMappingExposure = def.timeOfDay === 'night' ? 1.45 : def.timeOfDay === 'sunset' ? 0.92 : 1.15;
   }
 
   /** Builds (or rebuilds) the 3D circuit for a track id. */
@@ -492,6 +487,10 @@ export class GameEngine {
     this.particles.clear();
     this.rig.mode = 'overview';
     this.rig.frameBounds(this.geometry!.bounds, 1.7, true);
+    const start = this.geometry!.point(0);
+    this.rig.focusOverview(start.x, start.z);
+    this.rig.zoom(0.42);
+    this.rig.snapOverview();
     this.trajectory.clear();
     this.trajectory.visible = true;
     this.danger.clear();
@@ -521,11 +520,6 @@ export class GameEngine {
     this.activeStroke = [];
     this.livePoints = [];
     this.appendStrokeSample(p);
-    const point = this.livePoints[0];
-    if (point && this.geometry) {
-      this.rig.focusOverview(point.x, point.z);
-      this.rig.zoom(0.65);
-    }
   }
 
   private onStrokeMove(p: StrokePoint): void {
@@ -533,13 +527,11 @@ export class GameEngine {
     this.appendStrokeSample(p);
     const speeds = this.activeStroke.slice(1).map((sample, i) => {
       const previous = this.activeStroke[i];
-      return Math.hypot(sample.x - previous.x, sample.z - previous.z) / Math.max(1 / 120, sample.t - previous.t);
+      return Math.hypot((sample.px ?? 0) - (previous.px ?? 0), (sample.py ?? 0) - (previous.py ?? 0)) / Math.max(1 / 120, sample.t - previous.t);
     });
     const sorted = [...speeds].sort((a, b) => a - b);
     const median = sorted[Math.floor(sorted.length / 2)] || 1;
-    this.trajectory.drawPolyline(this.livePoints, 3.5, speeds.map((speed) => Math.max(0.08, Math.min(1.2, 0.62 * speed / median))));
-    const tail = this.livePoints[this.livePoints.length - 1];
-    if (tail) this.rig.focusOverview(tail.x, tail.z);
+    this.trajectory.drawPolyline(this.livePoints, 4.4, speeds.map((speed) => (paceFromGesture(speed, median) - 0.25) / 0.93));
   }
 
   private appendStrokeSample(p: StrokePoint): void {
@@ -547,7 +539,7 @@ export class GameEngine {
     if (!hit) return;
     const last = this.activeStroke[this.activeStroke.length - 1];
     if (last && Math.hypot(hit.x - last.x, hit.z - last.z) < 0.9) return;
-    this.activeStroke.push({ x: hit.x, z: hit.z, t: p.t });
+    this.activeStroke.push({ x: hit.x, z: hit.z, t: p.t, px: p.px, py: p.py });
     const station = this.geometry?.project(hit.x, hit.z).index;
     const height = station === undefined ? 0 : this.geometry!.point(station).y;
     this.livePoints.push({ x: hit.x, z: hit.z, y: height });
@@ -586,7 +578,7 @@ export class GameEngine {
       offsets: profile.offsets,
       pace: profile.pace,
       limits,
-      respectLimits: PLAYER_OVERDRIVE,
+      respectLimits: PLAYER_GRIP_MARGIN,
     });
     this.pendingPath = path;
     this.trajectory.drawPath(path);
@@ -653,7 +645,7 @@ export class GameEngine {
 
   /** Locks the line in and triggers the countdown. */
   confirmLine(): boolean {
-    if (!this.sim || !this.pendingPath) return false;
+    if (!this.sim || !this.pendingPath || this.drawState.coverage < 0.85) return false;
     this.sim.commitPlayerPath(this.pendingPath);
     this.trajectory.opacity = 0.55;
     const player = this.sim.player.vehicle;
@@ -714,6 +706,7 @@ export class GameEngine {
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.quality.maxPixelRatio));
         this.renderer.shadowMap.enabled = this.quality.shadows;
         this.sun.castShadow = this.quality.shadows;
+        if (this.trackDef) this.applyPalette(this.trackDef);
         this.callbacks.onQualityDrop?.(next);
       }
     }

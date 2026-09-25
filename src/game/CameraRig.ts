@@ -117,6 +117,13 @@ export class CameraRig {
     this.clampTarget();
   }
 
+  snapOverview(): void {
+    if (this.mode !== 'overview') return;
+    this.target.copy(this.desiredTarget);
+    this.distance = this.desiredDistance;
+    this.applyTransform();
+  }
+
   private clampTarget(): void {
     const margin = 40;
     this.desiredTarget.x = clamp(this.desiredTarget.x, this.bounds.minX - margin, this.bounds.maxX + margin);

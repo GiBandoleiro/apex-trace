@@ -286,6 +286,7 @@ export const buildTrackScene = (
   /* --- 1. Terrain ------------------------------------------------- */
   const terrainMat = assets.makeSurface(TERRAIN_MATERIAL[def.theme], [1, 1]);
   terrainMat.color = new THREE.Color(def.palette.terrainTint);
+  terrainMat.vertexColors = true;
   disposables.push(terrainMat);
 
   const b = geo.bounds;
@@ -308,6 +309,7 @@ export const buildTrackScene = (
   {
     const pos = terrainGeo.attributes.position as THREE.BufferAttribute;
     const uv = terrainGeo.attributes.uv as THREE.BufferAttribute;
+    const colors = new Float32Array(pos.count * 3);
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i);
       const z = pos.getZ(i);
@@ -321,7 +323,13 @@ export const buildTrackScene = (
         Math.sin(x * 0.012 + def.seed) * 3.2 + Math.cos(z * 0.0095 - def.seed * 0.7) * 2.6;
       pos.setY(i, p.y - TERRAIN_DROP + rolling * away * away);
       uv.setXY(i, x / 7, z / 7);
+      const patch = Math.sin(x * 0.013 + def.seed) * 0.5 + Math.cos(z * 0.018 - def.seed) * 0.35 + Math.sin((x + z) * 0.009) * 0.15;
+      const shade = 0.93 + patch * 0.12;
+      colors[i * 3] = shade * (1 - patch * 0.025);
+      colors[i * 3 + 1] = shade * (1 + patch * 0.035);
+      colors[i * 3 + 2] = shade * (1 - patch * 0.02);
     }
+    terrainGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
     terrainGeo.computeVertexNormals();
     terrainGeo.setAttribute('uv2', uv.clone());
   }
@@ -338,6 +346,8 @@ export const buildTrackScene = (
     const uv = horizonGeo.attributes.uv as THREE.BufferAttribute;
     const pos = horizonGeo.attributes.position as THREE.BufferAttribute;
     for (let i = 0; i < pos.count; i++) uv.setXY(i, pos.getX(i) / 7, pos.getZ(i) / 7);
+    const colors = new Float32Array(pos.count * 3).fill(0.93);
+    horizonGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
   }
   disposables.push(horizonGeo);
   const horizon = new THREE.Mesh(horizonGeo, terrainMat);

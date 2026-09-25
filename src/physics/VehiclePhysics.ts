@@ -191,11 +191,9 @@ export class Vehicle {
     if (this.surface !== 'track' && this.surface !== 'curb') this.offTrackTime += dt;
 
     // --- 2. Pure-pursuit steering ---------------------------------------
-    const lookahead = clamp(
-      3.6 + this.speed * (0.44 - L.steerResponse * 0.014),
-      4.5,
-      36,
-    );
+    const lookahead = this.isPlayer
+      ? clamp(2.5 + this.speed * 0.16, 3.5, 13)
+      : clamp(3.6 + this.speed * (0.44 - L.steerResponse * 0.014), 4.5, 36);
     const target = this.path.sampleAhead(this.pathIndex, lookahead);
 
     let toX = target.x - this.x;
@@ -224,7 +222,7 @@ export class Vehicle {
     // Look a little further ahead than we steer so braking starts in time.
     const speedTarget = Math.min(this.trafficSpeedCap,
       target.targetSpeed,
-      this.path.sampleAhead(this.pathIndex, lookahead * 1.9).targetSpeed,
+      this.path.sampleAhead(this.pathIndex, this.isPlayer ? Math.max(28, lookahead * 2) : lookahead * 1.9).targetSpeed,
     ) * this.paceMultiplier;
 
     const speedErr = speedTarget - this.speed;

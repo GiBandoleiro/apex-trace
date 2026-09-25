@@ -224,8 +224,8 @@ const DrawOverlay: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         <div className="draw-hint">
           <h2 className="draw-hint__title">Draw your line</h2>
           <p className="draw-hint__text">
-            Trace the path you want the car to take. Drag quickly on the straights and slow down
-            into the corners — the speed you draw at becomes the speed the car tries to carry.
+            Start at the finish line. Draw through the circuit in sections. Fast strokes accelerate;
+            slow strokes brake. Complete at least 85% of the lap to race.
           </p>
         </div>
       )}
@@ -288,10 +288,10 @@ const DrawOverlay: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         )}
         <Button
           variant="primary"
-          disabled={!draw.hasLine}
+          disabled={!draw.hasLine || draw.coverage < 0.85}
           onClick={() => engine?.confirmLine()}
         >
-          Confirm
+          {draw.hasLine && draw.coverage < 0.85 ? `${Math.round(draw.coverage * 100)}% / 85%` : 'Confirm'}
         </Button>
       </div>
     </div>

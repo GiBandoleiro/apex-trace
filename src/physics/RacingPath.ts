@@ -31,6 +31,8 @@ export interface PathPoint {
   curvature: number;
   /** Target speed in m/s after the profile solve. */
   targetSpeed: number;
+  /** The drawing pace before physical speed limits are applied. */
+  drawPace: number;
   /** Physical cornering limit at this point, for UI risk shading. */
   limitSpeed: number;
   /** Lateral offset from the centreline. */
@@ -52,8 +54,7 @@ export interface PathBuildOptions {
    *
    * The AI sits at or just under 1 - it drives within the grip available, which
    * is why it looks like a real driver rather than a car on rails. The player
-   * gets a much looser cap (~1.6) so an over-committed line is *allowed* to be
-   * drawn; the grip model then decides how badly it goes wrong.
+   * also reserves grip so the car can stay close to the authored path.
    */
   respectLimits?: number;
 }
@@ -80,6 +81,7 @@ export class RacingPath {
         tz: c.tz,
         curvature: 0,
         targetSpeed: 0,
+        drawPace: opts.pace[i],
         limitSpeed: 0,
         offset: o,
         station: i,
@@ -272,6 +274,8 @@ export interface DrawnSample {
   z: number;
   /** Timestamp in seconds. */
   t: number;
+  px?: number;
+  py?: number;
 }
 
 export interface DrawnProfile {
@@ -280,6 +284,13 @@ export interface DrawnProfile {
   /** Fraction of the lap the player actually drew, 0..1. */
   coverage: number;
 }
+
+/** CSS pointer speed gives the same braking/acceleration intent at every zoom. */
+export const paceFromGesture = (pixelsPerSecond: number, medianSpeed: number): number => {
+  const absolute = clamp(pixelsPerSecond / 420, 0, 1.6);
+  const relative = clamp(pixelsPerSecond / Math.max(1, medianSpeed) - 1, -1, 1);
+  return clamp(0.25 + absolute * 0.55 + relative * 0.08, 0.25, 1.18);
+};
 
 /**
  * Converts one or more drawn strokes into an offset + pace profile.
@@ -308,11 +319,13 @@ export const profileFromStrokes = (
   for (const samples of strokes) {
     if (samples.length < 2) continue;
 
-    // Instantaneous drawing speed per sample (world metres / second).
+    // Pointer speed is independent of camera zoom and track scale.
     const speeds: number[] = new Array(samples.length).fill(0);
     for (let i = 1; i < samples.length; i++) {
       const dt = Math.max(1 / 240, samples[i].t - samples[i - 1].t);
-      const d = Math.hypot(samples[i].x - samples[i - 1].x, samples[i].z - samples[i - 1].z);
+      const d = samples[i].px !== undefined && samples[i - 1].px !== undefined
+        ? Math.hypot(samples[i].px! - samples[i - 1].px!, samples[i].py! - samples[i - 1].py!)
+        : Math.hypot(samples[i].x - samples[i - 1].x, samples[i].z - samples[i - 1].z);
       speeds[i] = d / dt;
     }
     speeds[0] = speeds[1] ?? 0;
@@ -330,37 +343,39 @@ export const profileFromStrokes = (
     const sorted = smoothed.filter((v) => v > 1e-4).slice().sort((a, b) => a - b);
     const median = sorted.length ? sorted[Math.floor(sorted.length * 0.5)] : 1;
 
-    let hint = track.project(samples[0].x, samples[0].z).index;
-    let lastStation = hint;
+    let lastStation = -1;
+    let lastOffset = 0;
+    let lastPace = fallbackPace;
+    let direction = 0;
 
     for (let i = 0; i < samples.length; i++) {
       const s = samples[i];
-      const proj = track.projectNear(s.x, s.z, hint, 36);
-      hint = proj.index;
+      const proj = track.project(s.x, s.z);
 
-      // Ignore samples that move backwards along the circuit (hand wobble or a
-      // deliberate doubling back) so the profile stays monotonic.
-      const step = shortestStationDelta(proj.index, lastStation, n);
-      if (step < -6) continue;
+      // Accept either drawing direction, then ignore hand wobble in the other direction.
+      const step = lastStation < 0 ? 0 : shortestStationDelta(proj.index, lastStation, n);
+      if (direction === 0 && Math.abs(step) >= 2) direction = Math.sign(step);
+      if (direction !== 0 && step * direction < 0) continue;
 
       const limit = proj.halfWidth + 2.2;
       const off = clamp(proj.lateral, -limit, limit);
-      // Relative pace: 1 = this player's own median drawing speed, which maps
-      // to a committed-but-sane 0.8 of the car's maximum. Drawing noticeably
-      // faster than your own average asks for more than the car may have.
-      const rel = median > 1e-4 ? smoothed[i] / median : 1;
-      const p = clamp(0.28 + 0.52 * rel, 0.25, 1.18);
+      // Absolute pointer speed controls braking; the stroke median adds a
+      // small adaptation for each player's gesture.
+      const p = paceFromGesture(smoothed[i], median);
 
       // Fill every station between the previous one and this one.
-      const gap = Math.min(n - 1, Math.max(0, step));
+      const segmentDirection = direction || Math.sign(step) || 1;
+      const gap = Math.min(n - 1, Math.abs(step));
       for (let k = 0; k <= gap; k++) {
-        const idx = ((lastStation + k) % n + n) % n;
+        const idx = lastStation < 0 ? proj.index : ((lastStation + segmentDirection * k) % n + n) % n;
         const t = gap === 0 ? 1 : k / gap;
-        offsets[idx] = lerp(offsets[idx], off, covered[idx] ? 0.5 : t * 0.35 + 0.65);
-        pace[idx] = covered[idx] ? (pace[idx] + p) * 0.5 : p;
+        offsets[idx] = gap === 0 ? off : lerp(lastOffset, off, t);
+        pace[idx] = gap === 0 ? p : lerp(lastPace, p, t);
         covered[idx] = 1;
       }
       lastStation = proj.index;
+      lastOffset = off;
+      lastPace = p;
     }
   }
 
@@ -371,8 +386,7 @@ export const profileFromStrokes = (
   // Blend the seams between drawn and fallback sections over a few stations so
   // the car does not get an instantaneous lateral step.
   smoothSeams(offsets, pace, covered, n);
-  smoothArray(offsets, n, 2);
-  smoothArray(pace, n, 3);
+  smoothArray(pace, n, 1);
 
   return { offsets, pace, coverage };
 };
@@ -398,16 +412,18 @@ const smoothSeams = (
 ): void => {
   const blend = 10;
   for (let i = 0; i < n; i++) {
-    if (covered[i] === covered[(i + 1) % n]) continue;
-    for (let k = -blend; k <= blend; k++) {
-      const idx = ((i + k) % n + n) % n;
-      const w = 1 - Math.abs(k) / (blend + 1);
-      const a = offsets[((i - blend) % n + n) % n];
-      const b = offsets[((i + blend) % n + n) % n];
-      offsets[idx] = lerp(offsets[idx], (a + b) * 0.5, w * 0.45);
-      const pa = pace[((i - blend) % n + n) % n];
-      const pb = pace[((i + blend) % n + n) % n];
-      pace[idx] = lerp(pace[idx], (pa + pb) * 0.5, w * 0.35);
+    const next = (i + 1) % n;
+    if (covered[i] === covered[next]) continue;
+    const anchor = covered[i] ? i : next;
+    const direction = covered[i] ? 1 : -1;
+    const baseOffset = offsets[anchor];
+    const basePace = pace[anchor];
+    for (let k = 1; k <= blend; k++) {
+      const idx = ((anchor + direction * k) % n + n) % n;
+      if (covered[idx]) break;
+      const influence = 1 - k / (blend + 1);
+      offsets[idx] = lerp(offsets[idx], baseOffset, influence);
+      pace[idx] = lerp(pace[idx], basePace, influence);
     }
   }
 };

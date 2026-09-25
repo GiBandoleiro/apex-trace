@@ -220,16 +220,9 @@ export class TrajectoryRenderer {
   }
 
   /** Renders a solved racing path with speed/risk colouring and nodes. */
-  drawPath(path: RacingPath, width = 3.15, showNodes = true): void {
+  drawPath(path: RacingPath, width = 4, showNodes = true): void {
     const n = path.count;
     const count = Math.min(n, this.maxSegments);
-    let slowest = Infinity;
-    let fastest = 0;
-    for (let i = 0; i < count; i++) {
-      const speed = path.point(i).targetSpeed;
-      slowest = Math.min(slowest, speed);
-      fastest = Math.max(fastest, speed);
-    }
     const pos = this.geometry.attributes.position as THREE.BufferAttribute;
     const col = this.geometry.attributes.aColor as THREE.BufferAttribute;
     const edge = this.geometry.attributes.aEdge as THREE.BufferAttribute;
@@ -253,8 +246,7 @@ export class TrajectoryRenderer {
       posArr[v + 6] = b.x + nbx; posArr[v + 7] = b.y + 0.28; posArr[v + 8] = b.z + nbz;
       posArr[v + 9] = b.x - nbx; posArr[v + 10] = b.y + 0.28; posArr[v + 11] = b.z - nbz;
 
-      const relativeSpeed = (a.targetSpeed - slowest) / Math.max(1, fastest - slowest);
-      speedColor(0.08 + relativeSpeed * 0.92, this.color);
+      speedColor((a.drawPace - 0.25) / 0.93, this.color);
       for (let k = 0; k < 4; k++) {
         colArr[v + k * 3] = this.color.r;
         colArr[v + k * 3 + 1] = this.color.g;

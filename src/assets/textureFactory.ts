@@ -187,7 +187,7 @@ export const asphaltField =
     const macro = warpedFbm(x * 0.9, y * 0.9, P * 0.9, 4, seed + 13, 0.8);
 
     // Base tone - slightly blue-grey bitumen.
-    let base = 0.088 + binder * 0.034 + macro * 0.034 + (1 - grain) * 0.05;
+    let base = 0.078 + binder * 0.035 + macro * 0.062 + (1 - grain) * 0.035;
 
     // Hairline cracks: thin worley ridges.
     const crackField = worley(x * 4.2, y * 4.2, P * 4.2, seed + 311);
@@ -202,9 +202,9 @@ export const asphaltField =
 
     // Slightly cool bias so the surface still reads as asphalt rather than
     // dirt when a low, very warm sun is doing most of the lighting.
-    let r = base * 0.95;
-    let g = base * 0.985;
-    let b = base * 1.14;
+    let r = base * 0.98;
+    let g = base * 0.99;
+    let b = base * 1.02;
 
     // Stains push slightly warm and much glossier.
     r = lerp(r, r * 0.72, stain);
@@ -217,7 +217,7 @@ export const asphaltField =
     g = lerp(g, g * 0.78, rubber);
     b = lerp(b, b * 0.8, rubber);
 
-    const h = clamp01(grain * 0.68 + binder * 0.22 + macro * 0.1 - crack * 0.55);
+    const h = clamp01(grain * 0.36 + binder * 0.3 + macro * 0.2 - crack * 0.4);
     const rough = clamp01(
       0.93 - stain * 0.42 - rubber * 0.08 + (1 - grain) * 0.05 - macro * 0.04,
     );
@@ -249,13 +249,13 @@ export const grassField =
     let g = lerp(lush.g, mid.g, t);
     let b = lerp(lush.b, mid.b, t);
 
-    r = lerp(r, dryC.r, dry * 0.85);
-    g = lerp(g, dryC.g, dry * 0.85);
-    b = lerp(b, dryC.b, dry * 0.85);
+    r = lerp(r, dryC.r, dry * 0.72);
+    g = lerp(g, dryC.g, dry * 0.72);
+    b = lerp(b, dryC.b, dry * 0.72);
 
-    r = lerp(r, soilC.r, soil * 0.75);
-    g = lerp(g, soilC.g, soil * 0.75);
-    b = lerp(b, soilC.b, soil * 0.75);
+    r = lerp(r, soilC.r, soil * 0.65);
+    g = lerp(g, soilC.g, soil * 0.65);
+    b = lerp(b, soilC.b, soil * 0.65);
 
     const h = clamp01(blades * 0.55 + clumps * 0.45);
     return {
