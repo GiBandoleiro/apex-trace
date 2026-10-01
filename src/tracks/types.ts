@@ -62,6 +62,8 @@ export interface TrackDefinition {
   runoff: RunoffSurface;
   /** Half-width of the racing surface in metres (track is 2x this wide). */
   halfWidth: number;
+  /** Rally stages use compacted earth instead of bitumen. */
+  roadSurface?: 'asphalt' | 'dirt';
   /** Closed loop of centreline control points. */
   nodes: TrackNode[];
   /** Player level required to unlock. 0 = available from the start. */

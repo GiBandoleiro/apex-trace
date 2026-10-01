@@ -226,6 +226,29 @@ export const asphaltField =
     return { r, g, b, h, rough, ao: aoV };
   };
 
+/** Compacted rally earth with exposed aggregate, tyre polish and dry patches. */
+export const dirtField =
+  (seed = 721): FieldFn =>
+  (u, v) => {
+    const x = u * 8;
+    const y = v * 8;
+    const stone = worley(x * 30, y * 30, 240, seed);
+    const fine = worley(x * 70, y * 70, 560, seed + 81);
+    const clay = warpedFbm(x * 1.8, y * 1.8, 14.4, 4, seed + 13, 0.7);
+    const dust = fbm(x * 4, y * 4, 32, 3, seed + 48);
+    const dark = clamp01(clay * 1.6 - 0.45);
+    const gravel = clamp01((1 - stone) * 1.8 + (1 - fine) * 0.28 - 0.5);
+    const base = 0.19 + clay * 0.12 + dust * 0.06 + gravel * 0.05;
+    return {
+      r: base * (1.06 - dark * 0.1),
+      g: base * (0.82 - dark * 0.08),
+      b: base * (0.59 - dark * 0.04),
+      h: clamp01(stone * 0.36 + fine * 0.17 + clay * 0.28),
+      rough: clamp01(0.95 - dark * 0.11 + dust * 0.04),
+      ao: clamp01(0.77 + stone * 0.18 - dark * 0.08),
+    };
+  };
+
 /** Short trimmed circuit grass with dry patches and soil showing through. */
 export const grassField =
   (seed = 44): FieldFn =>

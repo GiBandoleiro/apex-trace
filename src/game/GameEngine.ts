@@ -260,6 +260,9 @@ export class GameEngine {
         if (this.phase === 'draw') this.rig.zoom(f);
       },
       onKey: (code) => this.onKey(code),
+      onKeyUp: (code) => {
+        if (code === 'KeyN' || code === 'ShiftLeft' || code === 'ShiftRight') this.setNitroPressed(false);
+      },
     });
     this.input.drawMode = this.phase === 'draw';
   }
@@ -564,6 +567,9 @@ export class GameEngine {
 
   private onStrokeStart(p: StrokePoint): void {
     if (this.phase !== 'draw') return;
+    // Finish any camera movement before projecting this stroke. Moving the
+    // camera under a held pointer would shift the world point away from it.
+    this.rig.snapOverview();
     this.activeStroke = [];
     this.livePoints = [];
     this.appendStrokeSample(p);
@@ -594,7 +600,6 @@ export class GameEngine {
 
   private onStrokeEnd(): void {
     if (this.phase !== 'draw') return;
-    if (this.geometry) this.rig.frameBounds(this.geometry.bounds, 1.7, false);
     if (this.activeStroke.length < 3) {
       this.activeStroke = [];
       this.livePoints = [];
@@ -602,10 +607,19 @@ export class GameEngine {
       else this.trajectory.clear();
       return;
     }
+    const end = this.activeStroke[this.activeStroke.length - 1];
     this.strokes.push(this.activeStroke);
     this.activeStroke = [];
     this.livePoints = [];
     this.rebuildPath();
+    if (this.geometry) {
+      if (this.drawState.coverage >= 0.85) {
+        this.rig.frameBounds(this.geometry.bounds, 1.7, true);
+      } else {
+        this.rig.focusOverview(end.x, end.z);
+        this.rig.snapOverview();
+      }
+    }
     audio.ui('click');
   }
 
@@ -693,8 +707,9 @@ export class GameEngine {
   /** Locks the line in and triggers the countdown. */
   confirmLine(): boolean {
     if (!this.sim || !this.pendingPath || this.drawState.coverage < 0.85) return false;
-    this.sim.commitPlayerPath(this.pendingPath);
-    this.trajectory.opacity = 0.55;
+    const launchPath = this.sim.commitPlayerPath(this.pendingPath);
+    this.trajectory.drawPath(launchPath);
+    this.trajectory.opacity = 0.18;
     const player = this.sim.player.vehicle;
     this.rig.startFollow(player.x, player.z, player.heading);
     this.setPhase('countdown');
@@ -712,6 +727,11 @@ export class GameEngine {
       case 'KeyP':
         this.togglePause();
         break;
+      case 'KeyN':
+      case 'ShiftLeft':
+      case 'ShiftRight':
+        this.setNitroPressed(true);
+        break;
       case 'KeyZ':
         if (this.phase === 'draw') this.undoLine();
         break;
@@ -727,8 +747,13 @@ export class GameEngine {
   togglePause(): void {
     if (this.phase !== 'racing' && this.phase !== 'countdown') return;
     this.paused = !this.paused;
+    if (this.paused) this.setNitroPressed(false);
     audio.setRacePaused(this.paused);
     this.callbacks.onPause?.(this.paused);
+  }
+
+  setNitroPressed(pressed: boolean): void {
+    if (this.sim) this.sim.player.vehicle.nitroRequested = pressed && !this.paused && this.phase === 'racing';
   }
 
   /* ---------------------------------------------------------------- */
@@ -1060,6 +1085,7 @@ export class GameEngine {
 
   /** Returns to the idle/menu state after a race. */
   exitRace(): void {
+    this.setNitroPressed(false);
     this.paused = false;
     this.callbacks.onPause?.(false);
     audio.stopEngine();

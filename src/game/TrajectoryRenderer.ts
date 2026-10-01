@@ -39,8 +39,8 @@ const RIBBON_FRAGMENT = `
     float core = 1.0 - smoothstep(0.0, 0.42, d);
     // Energy flowing along the line in the direction of travel.
     float pulse = 0.5 + 0.5 * sin(vFlow * 6.2831 - uTime * 3.4);
-    vec3 col = vColor * (0.85 + core * 0.95) + vec3(0.9, 0.95, 1.0) * core * 0.2;
-    float a = (glow * 0.60 + core * 1.0) * uOpacity * (0.88 + pulse * 0.12);
+    vec3 col = vColor * (0.65 + core * 0.48);
+    float a = (glow * 0.34 + core * 0.78) * uOpacity * (0.94 + pulse * 0.06);
     if (a <= 0.004) discard;
     gl_FragColor = vec4(col, a);
   }
@@ -111,7 +111,7 @@ export class TrajectoryRenderer {
       fragmentShader: RIBBON_FRAGMENT,
       transparent: true,
       depthWrite: false,
-      blending: THREE.AdditiveBlending,
+      blending: THREE.NormalBlending,
       side: THREE.DoubleSide,
     });
 

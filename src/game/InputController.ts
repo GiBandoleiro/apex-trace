@@ -25,6 +25,7 @@ export interface InputHandlers {
   onPan?: (dxPixels: number, dyPixels: number) => void;
   onZoom?: (factor: number) => void;
   onKey?: (key: string) => void;
+  onKeyUp?: (key: string) => void;
   /** Called on the first real interaction, to unlock audio. */
   onFirstGesture?: () => void;
 }
@@ -60,6 +61,7 @@ export class InputController {
     el.addEventListener('contextmenu', this.onContextMenu);
     window.addEventListener('keydown', this.onKeyDown);
     window.addEventListener('keyup', this.onKeyUp);
+    window.addEventListener('blur', this.onBlur);
   }
 
   setHandlers(handlers: InputHandlers): void {
@@ -202,6 +204,12 @@ export class InputController {
 
   private onKeyUp = (e: KeyboardEvent): void => {
     if (e.code === 'Space') this.spaceHeld = false;
+    this.handlers.onKeyUp?.(e.code);
+  };
+
+  private onBlur = (): void => {
+    this.spaceHeld = false;
+    this.handlers.onKeyUp?.('KeyN');
   };
 
   dispose(): void {
@@ -215,6 +223,7 @@ export class InputController {
     el.removeEventListener('contextmenu', this.onContextMenu);
     window.removeEventListener('keydown', this.onKeyDown);
     window.removeEventListener('keyup', this.onKeyUp);
+    window.removeEventListener('blur', this.onBlur);
     this.pointers.clear();
   }
 }

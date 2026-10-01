@@ -125,7 +125,7 @@ const bodyStations = (d: CarDesign, count: number): Station[] => {
     widthFactor += d.flare * Math.max(archFront, archRear);
 
     // Side profile: low nose, shoulder line, slightly tapered tail.
-    const shoulder = d.height * 0.52;
+    const shoulder = d.height * 0.6;
     let top: number;
     if (t < 0.22) top = lerp(d.height * 0.34, shoulder, smoothstep(t / 0.22));
     else if (t > 0.8) top = lerp(shoulder, d.height * 0.44, smoothstep((t - 0.8) / 0.2));
@@ -149,8 +149,8 @@ const cabinStations = (d: CarDesign, count: number): Station[] => {
   const out: Station[] = [];
   const centerZ = (0.5 - d.cabinCenter) * d.length;
   const front = centerZ + d.cabinLength * 0.5;
-  const shoulder = d.height * 0.52;
-  const roof = d.height * 0.52 + d.cabinRise;
+  const shoulder = d.height * 0.6;
+  const roof = d.height;
 
   for (let i = 0; i < count; i++) {
     const t = i / (count - 1);
@@ -473,7 +473,7 @@ export class CarVisual {
       );
       this.disposables.push(roofGeo);
       const roof = new THREE.Mesh(roofGeo, paint);
-      roof.position.set(0, d.height * 0.52 + d.cabinRise - 0.01, centerZ - d.cabinLength * 0.06);
+      roof.position.set(0, d.height - 0.01, centerZ - d.cabinLength * 0.06);
       roof.castShadow = opts.castShadow ?? true;
       this.chassis.add(roof);
     }
@@ -513,7 +513,7 @@ export class CarVisual {
       const g = new THREE.BoxGeometry(0.26, 0.12, 0.46);
       this.disposables.push(g);
       const m = new THREE.Mesh(g, darkTrim);
-      m.position.set(0, d.height * 0.52 + d.cabinRise + 0.04, centerZ + d.cabinLength * 0.1);
+      m.position.set(0, d.height + 0.04, centerZ + d.cabinLength * 0.1);
       this.chassis.add(m);
     }
     if (detail >= 1) {

@@ -33,6 +33,9 @@ export interface VehicleInit {
   startHeading: number;
   /** Grid slot, 0 = pole. */
   gridSlot: number;
+  /** Full visible footprint, including the outermost bodywork. */
+  collisionLength: number;
+  collisionWidth: number;
 }
 
 export interface CollisionEvent {
@@ -47,6 +50,8 @@ export class Vehicle {
   readonly isPlayer: boolean;
   readonly limits: DrivetrainLimits;
   readonly runoff: RunoffSurface;
+  readonly collisionHalfLength: number;
+  readonly collisionHalfWidth: number;
 
   path: RacingPath;
   track: TrackGeometry;
@@ -105,6 +110,7 @@ export class Vehicle {
   /** Nitro reserve, 0..1. Auto-deploys on long straights when fitted. */
   nitroCharge = 1;
   nitroActive = false;
+  nitroRequested = false;
   readonly hasNitro: boolean;
 
   private lastTrackS = 0;
@@ -118,6 +124,8 @@ export class Vehicle {
     this.path = init.path;
     this.track = init.track;
     this.runoff = init.runoff;
+    this.collisionHalfLength = init.collisionLength * 0.5;
+    this.collisionHalfWidth = init.collisionWidth * 0.5;
     this.x = init.startX;
     this.z = init.startZ;
     this.heading = init.startHeading;
@@ -238,18 +246,20 @@ export class Vehicle {
       this.brakeLight = damp(this.brakeLight, demand, 14, dt);
     }
 
-    // Nitro: deploy when the road ahead is straight, we are near the target
-    // and there is charge left. Purely automatic - it never steals control.
+    // The player holds the boost control. AI saves its charge for a straight.
     this.nitroActive = false;
     if (this.hasNitro && this.nitroCharge > 0.02) {
       const straightAhead = Math.abs(this.path.sampleAhead(this.pathIndex, 60).curvature) < 0.004;
-      if (straightAhead && this.speed > L.maxSpeed * 0.62 && this.surface === 'track') {
+      const wantsBoost = this.isPlayer
+        ? this.nitroRequested
+        : straightAhead && this.speed > L.maxSpeed * 0.62;
+      if (wantsBoost && this.surface === 'track') {
         this.nitroActive = true;
-        longAccel += L.accel * 0.45;
-        this.nitroCharge = Math.max(0, this.nitroCharge - dt * 0.14);
+        longAccel += L.accel * 0.7;
+        this.nitroCharge = Math.max(0, this.nitroCharge - dt * 0.2);
       }
     }
-    if (!this.nitroActive) this.nitroCharge = Math.min(1, this.nitroCharge + dt * 0.045);
+    if (!this.nitroActive) this.nitroCharge = Math.min(1, this.nitroCharge + dt * 0.035);
 
     // --- 4. Friction circle ---------------------------------------------
     const latCapacity = (L.lateralGrip + L.downforceGain * this.speed * this.speed) * gripScale;
@@ -291,7 +301,7 @@ export class Vehicle {
     const rolling = this.surfaceDrag() * clamp01(this.speed / 18);
 
     this.speed += (longAccel - drag - scrub - rolling) * dt;
-    this.speed = clamp(this.speed, 0, L.maxSpeed * 1.08);
+    this.speed = clamp(this.speed, 0, L.maxSpeed * (this.nitroActive ? 1.28 : 1.08));
 
     this.slipIntensity = damp(
       this.slipIntensity,
@@ -425,23 +435,39 @@ export class Vehicle {
   }
 }
 
-/** Resolves a light, arcade-friendly collision between two cars. */
+/** Oriented body footprints keep the visible cars from overlapping. */
 export const resolveCarCollision = (
   a: Vehicle,
   b: Vehicle,
   collisions: CollisionEvent[],
 ): void => {
-  const radius = 1.45;
   const dx = b.x - a.x;
   const dz = b.z - a.z;
-  const distSq = dx * dx + dz * dz;
-  const minDist = radius * 2;
-  if (distSq > minDist * minDist || distSq < 1e-6) return;
-
-  const dist = Math.sqrt(distSq);
-  const nx = dx / dist;
-  const nz = dz / dist;
-  const overlap = minDist - dist;
+  if (Math.abs(dx) > a.collisionHalfLength + b.collisionHalfLength + 2 ||
+      Math.abs(dz) > a.collisionHalfLength + b.collisionHalfLength + 2) return;
+  const af = { x: Math.cos(a.heading), z: Math.sin(a.heading) };
+  const ar = { x: -af.z, z: af.x };
+  const bf = { x: Math.cos(b.heading), z: Math.sin(b.heading) };
+  const br = { x: -bf.z, z: bf.x };
+  let overlap = Infinity;
+  let nx = 0;
+  let nz = 0;
+  for (const axis of [af, ar, bf, br]) {
+    const ra = a.collisionHalfLength * Math.abs(axis.x * af.x + axis.z * af.z) +
+      a.collisionHalfWidth * Math.abs(axis.x * ar.x + axis.z * ar.z);
+    const rb = b.collisionHalfLength * Math.abs(axis.x * bf.x + axis.z * bf.z) +
+      b.collisionHalfWidth * Math.abs(axis.x * br.x + axis.z * br.z);
+    const signed = dx * axis.x + dz * axis.z;
+    const penetration = ra + rb - Math.abs(signed);
+    if (penetration <= 0) return;
+    if (penetration < overlap) {
+      overlap = penetration;
+      const direction = signed >= 0 ? 1 : -1;
+      nx = axis.x * direction;
+      nz = axis.z * direction;
+    }
+  }
+  overlap += 0.015;
 
   // Mass-weighted separation.
   const ma = a.limits.mass;

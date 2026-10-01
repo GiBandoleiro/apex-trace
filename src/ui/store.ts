@@ -45,6 +45,7 @@ export interface RaceRequest {
   trackId: string;
   laps: number;
   opponents: number;
+  collisionMode?: 'solid' | 'ghost';
   difficulty: Difficulty;
   modifiers?: RaceModifiers;
   /** Set when the race is part of a series. */

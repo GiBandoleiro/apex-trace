@@ -13,6 +13,7 @@ import {
   basaltField,
   bakePBR,
   concreteField,
+  dirtField,
   curbField,
   grassField,
   gravelField,
@@ -27,6 +28,7 @@ import type { TimeOfDay } from '@/tracks/types';
 
 export type SurfaceId =
   | 'asphalt'
+  | 'dirt'
   | 'grass'
   | 'gravel'
   | 'concrete'
@@ -46,6 +48,7 @@ export interface LoadStep {
 
 const SURFACE_LABELS: Record<SurfaceId, string> = {
   asphalt: 'Baking asphalt',
+  dirt: 'Packing rally earth',
   grass: 'Growing grass',
   gravel: 'Laying gravel traps',
   concrete: 'Pouring concrete',
@@ -95,6 +98,7 @@ export class AssetLibrary {
 
     const jobs: Array<{ id: SurfaceId; field: FieldFn; size: number; strength: number }> = [
       { id: 'asphalt', field: asphaltField(17), size: big, strength: 1.5 },
+      { id: 'dirt', field: dirtField(721), size: big, strength: 1.8 },
       { id: 'grass', field: grassField(44), size: small, strength: 2.6 },
       { id: 'curbRed', field: curbField([0.62, 0.075, 0.07], [0.82, 0.8, 0.78], 120), size: small, strength: 2.8 },
       { id: 'gravel', field: gravelField(61), size: small, strength: 1.9 },
@@ -260,6 +264,7 @@ export class AssetLibrary {
 
   private buildMaterials(): void {
     this.materials.set('asphalt', this.surfaceMaterial('asphalt', [1, 1], { roughness: 0.92 }));
+    this.materials.set('dirt', this.surfaceMaterial('dirt', [1, 1], { roughness: 0.96 }));
     this.materials.set('grass', this.surfaceMaterial('grass', [1, 1]));
     this.materials.set('gravel', this.surfaceMaterial('gravel', [1, 1]));
     this.materials.set('concrete', this.surfaceMaterial('concrete', [1, 1]));

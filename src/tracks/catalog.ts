@@ -699,14 +699,19 @@ export const TRACKS: TrackDefinition[] = [
 ];
 
 // Keep existing IDs and player records while replacing every centreline.
-for (const track of TRACKS) track.nodes = redesignedNodes(track.id, track.nodes);
+for (const track of TRACKS) {
+  track.nodes = redesignedNodes(track.id, track.nodes);
+  if (['dune-prospect', 'alpine-pass', 'forest-run', 'frostline', 'caldera', 'mistwood'].includes(track.id)) {
+    track.roadSurface = 'dirt';
+  }
+}
 
 TRACKS.push(
   {
     id: 'red-rock-ring', name: 'Red Rock Ring', country: 'Kharan Mesa',
     theme: 'desert', difficulty: 3, laps: 3, timeOfDay: 'sunset',
     weather: 'clear', curbStyle: 'yellow', runoff: 'sand',
-    halfWidth: 9, nodes: redesignedNodes('red-rock-ring', []),
+    halfWidth: 9, roadSurface: 'dirt', nodes: redesignedNodes('red-rock-ring', []),
     unlockLevel: 0, unlockCost: 0, paceFactor: 1.04,
     palette: tint(SUNSET, { sky: '#bb8665', fog: '#ad8064', groundColor: '#806547' }),
     tagline: 'A long blast through red stone and sweeping bends.', seed: 1414,
@@ -733,7 +738,7 @@ TRACKS.push(
     id: 'copper-canyon', name: 'Copper Canyon', country: 'Kharan Frontier',
     theme: 'desert', difficulty: 4, laps: 3, timeOfDay: 'day',
     weather: 'clear', curbStyle: 'yellow', runoff: 'sand',
-    halfWidth: 8.2, nodes: redesignedNodes('copper-canyon', []),
+    halfWidth: 8.2, roadSurface: 'dirt', nodes: redesignedNodes('copper-canyon', []),
     unlockLevel: 6, unlockCost: 4300, paceFactor: 1.02,
     palette: tint(DAY, { sky: '#d4ad82', fog: '#c9a881', groundColor: '#806d50' }),
     tagline: 'Brake hard where the canyon road doubles back.', seed: 1717,
@@ -751,7 +756,7 @@ TRACKS.push(
     id: 'emerald-valley', name: 'Emerald Valley', country: 'Val Terrano',
     theme: 'alpine', difficulty: 4, laps: 3, timeOfDay: 'day',
     weather: 'fog', curbStyle: 'red', runoff: 'grass',
-    halfWidth: 8.2, nodes: redesignedNodes('emerald-valley', []),
+    halfWidth: 8.2, roadSurface: 'dirt', nodes: redesignedNodes('emerald-valley', []),
     unlockLevel: 10, unlockCost: 8600, paceFactor: 0.96,
     palette: tint(DAY, { sky: '#a2b7ad', fog: '#9eb3a9', fogDensity: 0.0065,
       groundColor: '#3d5841' }),

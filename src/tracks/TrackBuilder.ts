@@ -423,11 +423,11 @@ export const buildTrackScene = (
   }
 
   /* --- 3. Asphalt -------------------------------------------------- */
-  const asphaltMat = assets.makeSurface('asphalt', [1, 1], {
+  const asphaltMat = assets.makeSurface(def.roadSurface === 'dirt' ? 'dirt' : 'asphalt', [1, 1], {
     roughness: 0.94,
     vertexColors: true,
   });
-  if (def.weather === 'rain' || def.timeOfDay === 'night') {
+  if (def.roadSurface !== 'dirt' && (def.weather === 'rain' || def.timeOfDay === 'night')) {
     // Damp/lit asphalt reflects far more - this is what sells a night circuit.
     asphaltMat.roughness = 0.52;
     asphaltMat.metalness = 0.12;
@@ -459,7 +459,7 @@ export const buildTrackScene = (
       const rubber = clamp01(1 - d / 4.2);
       // A little extra grime right at the edges, where nobody drives.
       const edge = clamp01((Math.abs(lateral) - hw * 0.72) / (hw * 0.28));
-      const shade = 1 - rubber * 0.3 + edge * 0.07;
+      const shade = 1 - rubber * (def.roadSurface === 'dirt' ? 0.12 : 0.3) + edge * 0.07;
       colors[v * 3] = shade;
       colors[v * 3 + 1] = shade;
       colors[v * 3 + 2] = shade * 1.01;
@@ -1119,8 +1119,8 @@ const buildStartStructures = (
     holder.add(l);
   }
 
-  // Pit building alongside the start straight.
-  const pitGeo = new THREE.BoxGeometry(34, 6.5, 9);
+  // Low pit garages stay outside the follow camera's view of the racing line.
+  const pitGeo = new THREE.BoxGeometry(28, 3.6, 7);
   disposables.push(pitGeo);
   const pitMat = new THREE.MeshStandardMaterial({
     color: def.timeOfDay === 'night' ? 0x252b39 : 0x9aa1ad,
@@ -1130,18 +1130,41 @@ const buildStartStructures = (
   });
   disposables.push(pitMat);
   const pit = new THREE.Mesh(pitGeo, pitMat);
-  pit.position.set(16, 3.25, -(p.halfWidth + 10));
+  pit.position.set(17, 1.8, -(p.halfWidth + 25));
   pit.castShadow = quality.shadows;
   pit.receiveShadow = quality.shadows;
   holder.add(pit);
 
-  // Race control tower.
-  const towerGeo = new THREE.BoxGeometry(8, 15, 8);
+  const roofGeo = new THREE.BoxGeometry(29, 0.25, 7.8);
+  const roofMat = new THREE.MeshStandardMaterial({ color: 0x25333f, roughness: 0.56, metalness: 0.35, envMap: env });
+  disposables.push(roofGeo, roofMat);
+  const roof = new THREE.Mesh(roofGeo, roofMat);
+  roof.position.set(17, 3.75, -(p.halfWidth + 25));
+  roof.castShadow = quality.shadows;
+  holder.add(roof);
+
+  const glassGeo = new THREE.BoxGeometry(3.4, 1.25, 0.08);
+  const glassMat = new THREE.MeshStandardMaterial({ color: 0x172b3a, roughness: 0.18, metalness: 0.42, envMap: env });
+  disposables.push(glassGeo, glassMat);
+  for (let i = 0; i < 7; i++) {
+    const window = new THREE.Mesh(glassGeo, glassMat);
+    window.position.set(4.8 + i * 3.95, 2.25, -(p.halfWidth + 21.44));
+    holder.add(window);
+  }
+
+  // Compact control box beyond the garages.
+  const towerGeo = new THREE.BoxGeometry(5.5, 7, 5.5);
   disposables.push(towerGeo);
   const tower = new THREE.Mesh(towerGeo, pitMat);
-  tower.position.set(-8, 7.5, -(p.halfWidth + 11));
+  tower.position.set(-11, 3.5, -(p.halfWidth + 26));
   tower.castShadow = quality.shadows;
   holder.add(tower);
+
+  const towerGlassGeo = new THREE.BoxGeometry(5.6, 1.65, 5.6);
+  disposables.push(towerGlassGeo);
+  const towerGlass = new THREE.Mesh(towerGlassGeo, glassMat);
+  towerGlass.position.set(-11, 5.55, -(p.halfWidth + 26));
+  holder.add(towerGlass);
 
   group.add(holder);
 };

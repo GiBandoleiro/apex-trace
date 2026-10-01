@@ -57,6 +57,7 @@ export const TrackSelect: React.FC = () => {
   const level = selectLevel(profile);
   const [openId, setOpenId] = useState<string | null>(null);
   const [opponents, setOpponents] = useState(7);
+  const [collisionMode, setCollisionMode] = useState<'solid' | 'ghost'>('solid');
 
   const difficulty = profile.settings.difficulty;
   const open = openId ? getTrack(openId) : null;
@@ -69,6 +70,7 @@ export const TrackSelect: React.FC = () => {
       trackId,
       laps: def.laps,
       opponents,
+      collisionMode,
       difficulty,
       seed: Math.floor(Math.random() * 1e9),
     });
@@ -106,6 +108,14 @@ export const TrackSelect: React.FC = () => {
               { value: '7', label: '7' },
               { value: '9', label: '9' },
             ]}
+          />
+        </div>
+        <div className="field">
+          <span className="label">Car contact</span>
+          <Segmented
+            value={collisionMode}
+            onChange={(mode) => setCollisionMode(mode as 'solid' | 'ghost')}
+            options={[{ value: 'solid', label: 'Collision' }, { value: 'ghost', label: 'Ghost' }]}
           />
         </div>
       </div>

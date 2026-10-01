@@ -36,8 +36,8 @@ export interface QualityProfile {
 
 const PROFILES: Record<QualityTier, Omit<QualityProfile, 'tier'>> = {
   low: {
-    textureSize: 512,
-    detailTextureSize: 256,
+    textureSize: 256,
+    detailTextureSize: 128,
     anisotropy: 2,
     shadows: false,
     shadowMapSize: 512,
@@ -50,8 +50,8 @@ const PROFILES: Record<QualityTier, Omit<QualityProfile, 'tier'>> = {
     trackSegmentLength: 4.5,
   },
   medium: {
-    textureSize: 1024,
-    detailTextureSize: 512,
+    textureSize: 512,
+    detailTextureSize: 256,
     anisotropy: 4,
     shadows: true,
     shadowMapSize: 1024,
@@ -64,8 +64,8 @@ const PROFILES: Record<QualityTier, Omit<QualityProfile, 'tier'>> = {
     trackSegmentLength: 3,
   },
   high: {
-    textureSize: 1024,
-    detailTextureSize: 512,
+    textureSize: 512,
+    detailTextureSize: 256,
     anisotropy: 8,
     shadows: true,
     shadowMapSize: 2048,
@@ -78,8 +78,8 @@ const PROFILES: Record<QualityTier, Omit<QualityProfile, 'tier'>> = {
     trackSegmentLength: 2.2,
   },
   ultra: {
-    textureSize: 2048,
-    detailTextureSize: 1024,
+    textureSize: 1024,
+    detailTextureSize: 512,
     anisotropy: 16,
     shadows: true,
     shadowMapSize: 2048,

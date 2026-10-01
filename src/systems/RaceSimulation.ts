@@ -66,6 +66,8 @@ export interface RaceSetup {
   seed: number;
   /** Previous personal best for this track, in seconds (Infinity if none). */
   previousBest: number;
+  /** Solid body contact or unrestricted ghost racing. */
+  collisionMode?: 'solid' | 'ghost';
   /** Event modifiers, e.g. time attack removes opponents. */
   modifiers?: RaceModifiers;
 }
@@ -104,7 +106,7 @@ export class RaceSimulation {
     this.lapLength = setup.geometry.totalLength;
     this.rng = makeRng(setup.seed);
 
-    const weatherGrip = WEATHER_GRIP[setup.track.weather];
+    const weatherGrip = WEATHER_GRIP[setup.track.weather] * (setup.track.roadSurface === 'dirt' ? 0.82 : 1);
     const grid = setup.geometry.startGrid(setup.opponentCount + 1);
 
     // --- Player ---------------------------------------------------------
@@ -113,8 +115,8 @@ export class RaceSimulation {
     const playerLimits = computeLimits(playerStats, weatherGrip);
     if (setup.modifiers?.noBrakes) playerLimits.brake *= 0.28;
 
-    // Player starts last on the grid - the draw mechanic is how you make it up.
-    const playerSlot = grid[grid.length - 1];
+    // Every entrant leaves the same start grid, already facing the first straight.
+    const playerSlot = grid[0];
     const placeholderPath = this.makeFallbackPath(playerLimits, 0.8);
 
     const playerVehicle = new Vehicle(
@@ -128,9 +130,12 @@ export class RaceSimulation {
         startX: playerSlot.x,
         startZ: playerSlot.z,
         startHeading: playerSlot.heading,
-        gridSlot: grid.length - 1,
+        gridSlot: 0,
+        collisionLength: playerCar.design.length + 0.18,
+        collisionWidth: Math.max(playerCar.design.width * (1 + playerCar.design.flare),
+          playerCar.design.width + playerCar.design.wheelWidth) + 0.04,
       },
-      playerStats.nitro > 0,
+      true,
     );
 
     this.player = {
@@ -174,7 +179,7 @@ export class RaceSimulation {
         respectLimits: 0.86 + plan.profile.skill * 0.17,
       });
 
-      const slot = grid[i];
+      const slot = grid[i + 1];
       const vehicle = new Vehicle(
         {
           id: `ai-${i}`,
@@ -186,7 +191,10 @@ export class RaceSimulation {
           startX: slot.x,
           startZ: slot.z,
           startHeading: slot.heading,
-          gridSlot: i,
+          gridSlot: i + 1,
+          collisionLength: plan.car.design.length + 0.18,
+          collisionWidth: Math.max(plan.car.design.width * (1 + plan.car.design.flare),
+            plan.car.design.width + plan.car.design.wheelWidth) + 0.04,
         },
         stats.nitro > 0,
       );
@@ -241,10 +249,28 @@ export class RaceSimulation {
   }
 
   /** Installs the path the player drew and arms the countdown. */
-  commitPlayerPath(path: RacingPath): void {
-    this.player.vehicle.setPath(path);
+  commitPlayerPath(path: RacingPath): RacingPath {
+    const n = this.geometry.sampleCount;
+    const offsets = new Float32Array(n);
+    const pace = new Float32Array(n);
+    const lane = this.geometry.project(this.player.vehicle.x, this.player.vehicle.z).lateral;
+    const length = this.geometry.totalLength;
+    for (let i = 0; i < n; i++) {
+      const point = path.point(i);
+      const s = this.geometry.point(i).s;
+      const entry = s > length - 80 ? Math.min(1, (s - (length - 80)) / 38) : 0;
+      const exit = s < 70 ? Math.max(0, 1 - s / 70) : 0;
+      const blend = Math.max(entry, exit);
+      offsets[i] = point.offset * (1 - blend) + lane * blend;
+      pace[i] = Math.min(point.drawPace, blend > 0.5 ? 0.75 : 1.35);
+    }
+    const launchPath = new RacingPath(this.geometry, {
+      offsets, pace, limits: this.player.vehicle.limits, respectLimits: 0.98,
+    });
+    this.player.vehicle.setPath(launchPath);
     this.phase = 'countdown';
     this.countdown = COUNTDOWN_SECONDS;
+    return launchPath;
   }
 
   /** Integer shown by the countdown overlay: 3, 2, 1, 0 = GO. */
@@ -309,7 +335,7 @@ export class RaceSimulation {
         }
         // Aggression: close up to the car ahead on straights.
         this.applySlipstream(e, dt);
-        this.avoidTraffic(e);
+        if (this.setup.collisionMode !== 'ghost') this.avoidTraffic(e);
       }
 
       v.step(dt, this.raceTime, this.collisions);
@@ -320,13 +346,15 @@ export class RaceSimulation {
     }
 
     // Car-to-car contact, O(n^2) over a field of <= 12 - trivially cheap.
-    for (let i = 0; i < this.entrants.length; i++) {
-      for (let j = i + 1; j < this.entrants.length; j++) {
-        resolveCarCollision(
-          this.entrants[i].vehicle,
-          this.entrants[j].vehicle,
-          this.collisions,
-        );
+    if (this.setup.collisionMode !== 'ghost') {
+      for (let i = 0; i < this.entrants.length; i++) {
+        for (let j = i + 1; j < this.entrants.length; j++) {
+          resolveCarCollision(
+            this.entrants[i].vehicle,
+            this.entrants[j].vehicle,
+            this.collisions,
+          );
+        }
       }
     }
   }

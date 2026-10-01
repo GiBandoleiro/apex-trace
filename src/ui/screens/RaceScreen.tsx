@@ -63,6 +63,7 @@ export const RaceScreen: React.FC = () => {
         playerName: profile.name,
         difficulty: request.difficulty,
         opponentCount: request.opponents,
+        collisionMode: request.collisionMode ?? 'solid',
         laps: request.laps,
         seed: request.seed,
         previousBest: profile.records[request.trackId]?.bestLap ?? Infinity,
@@ -142,6 +143,7 @@ export const RaceScreen: React.FC = () => {
                   <StatTile label="Turns" value={trackStats.corners} />
                   <StatTile label="Weather" value={track.weather.toUpperCase()} />
                   <StatTile label="Opponents" value={request.opponents} />
+                  <StatTile label="Contact" value={request.collisionMode === 'ghost' ? 'GHOST' : 'ON'} />
                   <StatTile label="Grade" value={<Stars value={track.difficulty} />} />
                   <StatTile
                     label="Your best"
@@ -387,6 +389,29 @@ const RaceHud: React.FC<{ onExit: () => void }> = ({ onExit }) => {
             <span className="speedo__value">{Math.round(speed)}</span>
             <span className="speedo__unit">{units === 'mph' ? 'mph' : 'km/h'}</span>
           </div>
+        </div>
+
+        <div className="nitro-control">
+          <button
+            type="button"
+            className={`nitro-button ${t.nitroActive ? 'nitro-button--active' : ''}`}
+            disabled={paused || t.nitro < 0.02}
+            onPointerDown={(event) => {
+              event.currentTarget.setPointerCapture(event.pointerId);
+              engine?.setNitroPressed(true);
+            }}
+            onPointerUp={() => engine?.setNitroPressed(false)}
+            onPointerCancel={() => engine?.setNitroPressed(false)}
+            onLostPointerCapture={() => engine?.setNitroPressed(false)}
+            aria-label="Hold for nitro boost"
+          >
+            <span className="nitro-button__icon">⚡</span>
+            <span>NITRO</span>
+          </button>
+          <div className="nitro-control__charge" role="meter" aria-label="Nitro charge" aria-valuenow={Math.round(t.nitro * 100)} aria-valuemin={0} aria-valuemax={100}>
+            <i style={{ width: `${Math.round(t.nitro * 100)}%` }} />
+          </div>
+          <small>HOLD · N / SHIFT</small>
         </div>
 
         <div className="standings">

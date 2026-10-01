@@ -1529,6 +1529,22 @@ button {
 .draw-legend__fast { background: #38ed81; color: #38ed81; }
 .hud-pause { cursor: pointer; pointer-events: auto; width: 44px; height: 44px; border: 1px solid rgba(255,255,255,.25); border-radius: 13px; color: #fff; background: rgba(7,11,20,.86); backdrop-filter: blur(12px); font: 800 20px var(--font-display); box-shadow: 0 8px 26px #0007; }
 .hud-pause:hover { background: rgba(255,138,61,.3); border-color: var(--accent); }
+.nitro-control { display: flex; flex-direction: column; align-items: center; gap: 5px; pointer-events: auto; }
+.nitro-button {
+  width: 88px; height: 88px; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 1px; border-radius: 50%; cursor: pointer;
+  border: 3px solid #7de8ff; color: white; touch-action: none; user-select: none;
+  background: radial-gradient(circle at 35% 25%, #3386a2, #0a3549 58%, #071521 100%);
+  box-shadow: 0 0 0 5px #08121fcc, 0 0 32px #32c9fb88, inset 0 3px 12px #a8efff66, inset 0 -9px 14px #00121d;
+  font: 800 13px var(--font-display); letter-spacing: .12em; text-shadow: 0 2px 5px #00141e;
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.nitro-button__icon { font-size: 27px; line-height: 1; color: #dbfbff; }
+.nitro-button:active, .nitro-button--active { transform: scale(.93); box-shadow: 0 0 0 5px #08121fcc, 0 0 48px #45e9ff, inset 0 3px 20px #b5ffffaa; }
+.nitro-button:disabled { opacity: .43; cursor: default; filter: grayscale(.7); }
+.nitro-control__charge { width: 88px; height: 6px; overflow: hidden; border-radius: 6px; background: #071520; border: 1px solid #65aaba77; }
+.nitro-control__charge i { display: block; height: 100%; background: linear-gradient(90deg, #118db7, #8effff); box-shadow: 0 0 12px #70faff; }
+.nitro-control small { font: 700 9px var(--font-display); letter-spacing: .1em; color: #d3eefa; text-shadow: 0 2px 7px #000; }
 .pause-overlay { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 20px; background: rgba(2,5,10,.62); backdrop-filter: blur(12px); pointer-events: auto; }
 .pause-card { width: min(430px, 100%); padding: 30px; border: 1px solid rgba(255,255,255,.22); border-radius: 22px; background: linear-gradient(150deg, #1b2433, #090d16); box-shadow: 0 25px 90px #000b; text-align: center; }
 .pause-card h2 { margin: 8px 0; font: 800 clamp(40px,8vw,68px) var(--font-display); text-transform: uppercase; line-height: 1; }
@@ -1536,3 +1552,10 @@ button {
 .pause-card .row { justify-content: center; flex-wrap: wrap; margin: 24px 0 16px; }
 .pause-card small { color: var(--text-faint); }
 @media (max-width: 600px) { .draw-legend { font-size: 9px; gap: 8px; margin-bottom: 5px; } .pause-card { padding: 24px 16px; } .hud-pause { width: 37px; height: 37px; } }
+@media (max-width: 600px) {
+  .nitro-button { width: 64px; height: 64px; font-size: 10px; border-width: 2px; }
+  .nitro-button__icon { font-size: 20px; }
+  .nitro-control__charge { width: 64px; }
+  .nitro-control small { display: none; }
+  .hud__bottom { align-items: flex-end; }
+}
