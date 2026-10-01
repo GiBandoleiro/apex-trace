@@ -285,7 +285,7 @@ export const buildTrackScene = (
 
   /* --- 1. Terrain ------------------------------------------------- */
   const terrainMat = assets.makeSurface(TERRAIN_MATERIAL[def.theme], [1, 1]);
-  terrainMat.color = new THREE.Color(def.palette.terrainTint);
+  terrainMat.color.multiply(new THREE.Color(def.palette.terrainTint));
   terrainMat.vertexColors = true;
   disposables.push(terrainMat);
 
@@ -1037,7 +1037,7 @@ const buildEnvironment = (
   }
 
   /* Service vehicles and containers --------------------------------- */
-  if (quality.environmentDetail >= 2) {
+  if (quality.environmentDetail >= 2 && (theme === 'city' || theme === 'nightCity' || theme === 'industrial')) {
     const truckGeo = new THREE.BoxGeometry(2.4, 2.6, 7);
     const truckMat = new THREE.MeshStandardMaterial({
       color: 0xb8493a,

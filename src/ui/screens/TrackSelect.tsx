@@ -57,7 +57,7 @@ export const TrackSelect: React.FC = () => {
   const level = selectLevel(profile);
   const [openId, setOpenId] = useState<string | null>(null);
   const [opponents, setOpponents] = useState(7);
-  const [collisionMode, setCollisionMode] = useState<'solid' | 'ghost'>('solid');
+  const [collisionMode, setCollisionMode] = useState<'solid' | 'ghost'>('ghost');
 
   const difficulty = profile.settings.difficulty;
   const open = openId ? getTrack(openId) : null;

@@ -567,8 +567,8 @@ export class GameEngine {
 
   private onStrokeStart(p: StrokePoint): void {
     if (this.phase !== 'draw') return;
-    // Finish any camera movement before projecting this stroke. Moving the
-    // camera under a held pointer would shift the world point away from it.
+    // Begin from a stable projection; following starts only as the stroke
+    // approaches the edge of the usable screen.
     this.rig.snapOverview();
     this.activeStroke = [];
     this.livePoints = [];
@@ -578,24 +578,40 @@ export class GameEngine {
   private onStrokeMove(p: StrokePoint): void {
     if (this.phase !== 'draw' || this.activeStroke.length === 0) return;
     this.appendStrokeSample(p);
+    const tip = this.activeStroke[this.activeStroke.length - 1];
+    if (this.geometry && tip && (Math.abs(p.ndcX) > 0.48 || Math.abs(p.ndcY) > 0.44)) {
+      const station = this.geometry.project(tip.x, tip.z).index;
+      const ahead = this.geometry.point(station + 18);
+      // Keep the route ahead in view while preserving the current zoom and
+      // using the current camera projection for every pointer sample.
+      this.rig.focusOverview(
+        tip.x * 0.48 + ahead.x * 0.52,
+        tip.z * 0.48 + ahead.z * 0.52,
+      );
+    }
     const speeds = this.activeStroke.slice(1).map((sample, i) => {
       const previous = this.activeStroke[i];
       return Math.hypot((sample.px ?? 0) - (previous.px ?? 0), (sample.py ?? 0) - (previous.py ?? 0)) / Math.max(1 / 120, sample.t - previous.t);
     });
     const sorted = [...speeds].sort((a, b) => a - b);
     const median = sorted[Math.floor(sorted.length / 2)] || 1;
-    this.trajectory.drawPolyline(this.livePoints, 4.4, speeds.map((speed) => (paceFromGesture(speed, median) - 0.25) / 0.93));
+    this.trajectory.drawPolyline(this.livePoints, 5.8, speeds.map((speed) => (paceFromGesture(speed, median) - 0.25) / 0.93));
   }
 
   private appendStrokeSample(p: StrokePoint): void {
     const hit = this.rig.screenToGround(p.ndcX, p.ndcY, this.raycastPoint);
     if (!hit) return;
+    const projection = this.geometry?.project(hit.x, hit.z);
+    const roadLimit = projection ? Math.max(2, projection.halfWidth - 0.7) : 0;
+    const roadPoint = projection && Math.abs(projection.lateral) > roadLimit
+      ? this.geometry!.positionAt(projection.index, Math.max(-roadLimit, Math.min(roadLimit, projection.lateral)))
+      : hit;
     const last = this.activeStroke[this.activeStroke.length - 1];
-    if (last && Math.hypot(hit.x - last.x, hit.z - last.z) < 0.9) return;
-    this.activeStroke.push({ x: hit.x, z: hit.z, t: p.t, px: p.px, py: p.py });
-    const station = this.geometry?.project(hit.x, hit.z).index;
+    if (last && Math.hypot(roadPoint.x - last.x, roadPoint.z - last.z) < 0.9) return;
+    this.activeStroke.push({ x: roadPoint.x, z: roadPoint.z, t: p.t, px: p.px, py: p.py });
+    const station = projection?.index;
     const height = station === undefined ? 0 : this.geometry!.point(station).y;
-    this.livePoints.push({ x: hit.x, z: hit.z, y: height });
+    this.livePoints.push({ x: roadPoint.x, z: roadPoint.z, y: height });
   }
 
   private onStrokeEnd(): void {

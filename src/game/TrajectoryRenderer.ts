@@ -220,7 +220,7 @@ export class TrajectoryRenderer {
   }
 
   /** Renders a solved racing path with speed/risk colouring and nodes. */
-  drawPath(path: RacingPath, width = 4, showNodes = true): void {
+  drawPath(path: RacingPath, width = 5.4, showNodes = true): void {
     const n = path.count;
     const count = Math.min(n, this.maxSegments);
     const pos = this.geometry.attributes.position as THREE.BufferAttribute;

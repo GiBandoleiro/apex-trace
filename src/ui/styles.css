@@ -1559,3 +1559,73 @@ button {
   .nitro-control small { display: none; }
   .hud__bottom { align-items: flex-end; }
 }
+
+/* Instrument inspired controls: crisp edges, machined rims and restrained light. */
+.btn {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid rgba(182, 196, 210, .36);
+  background: linear-gradient(165deg, #27303c 0%, #111923 54%, #0a1018 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.22), inset 0 -2px 0 rgba(0,0,0,.5), 0 5px 16px rgba(0,0,0,.34);
+  letter-spacing: .08em;
+}
+.btn::after {
+  content: '';
+  position: absolute;
+  inset: 4px auto 4px 4px;
+  width: 2px;
+  background: var(--accent);
+  opacity: .8;
+  pointer-events: none;
+}
+.btn:hover:not(:disabled) { background: linear-gradient(165deg, #343f4b, #18212d 62%, #101721); }
+.btn--primary {
+  color: #16130e;
+  border-color: #ffd19b;
+  background: linear-gradient(168deg, #ffe2aa 0%, #ffad4e 41%, #cf611c 100%);
+  box-shadow: inset 0 1px 0 #fff3ce, inset 0 -2px 0 #873716, 0 7px 20px #a84a2080;
+}
+.btn--primary::after { background: #48250e; }
+.btn--primary:hover:not(:disabled) { background: linear-gradient(168deg, #ffe9bd, #ffc068 42%, #e47523); }
+.btn--ghost { background: linear-gradient(165deg, rgba(30,39,50,.82), rgba(9,15,23,.9)); }
+.segmented { border-radius: 9px; background: #0a1018; border: 1px solid #46515c; box-shadow: inset 0 2px 6px #0009; }
+.segmented__item { border-radius: 5px; }
+.segmented__item--active { background: linear-gradient(160deg, #f2af60, #bd6327); color: #1b140e; box-shadow: inset 0 1px #ffe0a6, 0 2px 5px #0009; }
+.hud-pause, .garage__zoom button, .draw-zoom button {
+  border-radius: 8px;
+  border: 1px solid #677382;
+  background: linear-gradient(145deg, #293441, #0b121b 72%);
+  box-shadow: inset 0 1px #ffffff36, 0 6px 16px #0008;
+}
+.nitro-button {
+  position: relative;
+  border: 3px solid #a9c8cf;
+  background: radial-gradient(circle at 38% 30%, #417789 0%, #12394d 43%, #071723 74%);
+  box-shadow: 0 0 0 3px #0a111a, 0 0 0 5px #879aa1, inset 0 2px 5px #cefbff66, inset 0 -8px 14px #000b, 0 10px 24px #000a;
+}
+.nitro-button::after {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border: 1px dashed #b8eefa77;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.nitro-button:active, .nitro-button--active {
+  box-shadow: 0 0 0 3px #0a111a, 0 0 0 5px #d2faff, 0 0 24px #33cfff, inset 0 3px 16px #9eeaff99;
+}
+@media (max-width: 600px) {
+  .hud__bottom { justify-content: flex-start; }
+  .nitro-control {
+    position: absolute;
+    right: calc(10px + var(--safe-r));
+    bottom: calc(18px + var(--safe-b));
+    z-index: 3;
+  }
+  .standings {
+    position: absolute;
+    right: calc(10px + var(--safe-r));
+    bottom: calc(104px + var(--safe-b));
+  }
+}

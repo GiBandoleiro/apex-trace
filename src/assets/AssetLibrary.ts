@@ -47,17 +47,17 @@ export interface LoadStep {
 }
 
 const SURFACE_LABELS: Record<SurfaceId, string> = {
-  asphalt: 'Baking asphalt',
-  dirt: 'Packing rally earth',
-  grass: 'Growing grass',
-  gravel: 'Laying gravel traps',
-  concrete: 'Pouring concrete',
+  asphalt: 'Loading photographed asphalt',
+  dirt: 'Loading rally earth',
+  grass: 'Loading photographed grass',
+  gravel: 'Loading gravel traps',
+  concrete: 'Loading concrete',
   curbRed: 'Painting curbs',
   curbBlue: 'Painting curbs',
   curbYellow: 'Painting curbs',
-  sand: 'Sifting sand',
-  snow: 'Packing snow',
-  basalt: 'Cooling basalt',
+  sand: 'Loading desert sand',
+  snow: 'Loading snow',
+  basalt: 'Loading volcanic stone',
   metal: 'Forging barriers',
 };
 
@@ -66,6 +66,28 @@ const yieldToBrowser = (): Promise<void> =>
     if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => resolve());
     else setTimeout(resolve, 0);
   });
+
+const PHOTO_SURFACES = new Set<SurfaceId>([
+  'asphalt', 'dirt', 'grass', 'gravel', 'concrete', 'sand', 'snow', 'basalt',
+]);
+
+const loadPhotoPBR = async (id: SurfaceId, anisotropy: number): Promise<PBRTextureSet> => {
+  const loader = new THREE.TextureLoader();
+  const base = `${import.meta.env.BASE_URL}textures/photo/${id}`;
+  const [map, normalMap, roughnessMap] = await Promise.all([
+    loader.loadAsync(`${base}-color.webp`),
+    loader.loadAsync(`${base}-normal.webp`),
+    loader.loadAsync(`${base}-roughness.webp`),
+  ]);
+  map.colorSpace = THREE.SRGBColorSpace;
+  for (const texture of [map, normalMap, roughnessMap]) {
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.anisotropy = anisotropy;
+    texture.needsUpdate = true;
+  }
+  return { map, normalMap, roughnessMap };
+};
 
 export class AssetLibrary {
   private textures = new Map<SurfaceId, PBRTextureSet>();
@@ -120,10 +142,19 @@ export class AssetLibrary {
     for (const job of jobs) {
       onProgress(done / total, SURFACE_LABELS[job.id]);
       await yieldToBrowser();
-      this.textures.set(
-        job.id,
-        bakePBR(job.field, job.size, this.profile.anisotropy, job.strength, true),
-      );
+      if (PHOTO_SURFACES.has(job.id)) {
+        try {
+          this.textures.set(job.id, await loadPhotoPBR(job.id, this.profile.anisotropy));
+        } catch {
+          // An interrupted texture request must not strand the player on the
+          // loading screen. The procedural counterpart is always available.
+          this.textures.set(job.id,
+            bakePBR(job.field, job.size, this.profile.anisotropy, job.strength, true));
+        }
+      } else {
+        this.textures.set(job.id,
+          bakePBR(job.field, job.size, this.profile.anisotropy, job.strength, true));
+      }
       done++;
     }
 
@@ -245,7 +276,8 @@ export class AssetLibrary {
         const c = t.clone();
         c.wrapS = THREE.RepeatWrapping;
         c.wrapT = THREE.RepeatWrapping;
-        c.repeat.set(repeat[0], repeat[1]);
+        const scale = id === 'asphalt' && PHOTO_SURFACES.has(id) ? 2 : 1;
+        c.repeat.set(repeat[0] * scale, repeat[1] * scale);
         c.needsUpdate = true;
         return c;
       };
@@ -257,6 +289,9 @@ export class AssetLibrary {
         mat.aoMapIntensity = 0.85;
       }
       mat.normalScale = new THREE.Vector2(1, 1);
+    }
+    if (id === 'grass' && PHOTO_SURFACES.has(id)) {
+      mat.color.multiply(new THREE.Color('#a6dc8c'));
     }
     mat.envMap = this.envMap;
     return mat;

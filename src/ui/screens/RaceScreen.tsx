@@ -63,7 +63,7 @@ export const RaceScreen: React.FC = () => {
         playerName: profile.name,
         difficulty: request.difficulty,
         opponentCount: request.opponents,
-        collisionMode: request.collisionMode ?? 'solid',
+        collisionMode: request.collisionMode ?? 'ghost',
         laps: request.laps,
         seed: request.seed,
         previousBest: profile.records[request.trackId]?.bestLap ?? Infinity,
