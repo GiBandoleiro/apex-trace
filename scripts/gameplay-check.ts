@@ -95,3 +95,32 @@ for (const { id } of TRACKS) {
   check(overlapping(a, b), 'ghost mode unexpectedly separated the cars');
   console.log('ghost mode OK');
 }
+
+for (const { id } of TRACKS) {
+  const { geometry, sim } = makeRace(id, 'ghost');
+  const player = sim.player.vehicle;
+  const pace = new Float32Array(geometry.sampleCount).fill(0.86);
+  sim.commitPlayerPath(new RacingPath(geometry, {
+    offsets: new Float32Array(geometry.sampleCount).fill(3), pace, limits: player.limits,
+    respectLimits: 0.98,
+  }));
+  sim.update(3.7);
+  let maximumDeviation = 0;
+  let deviationAt = '';
+  let samples = 0;
+  for (let tick = 0; tick < 10_800 && !player.finished; tick++) {
+    sim.update(1 / 60);
+    if (player.progress < 100 || player.progress > geometry.totalLength - 80) continue;
+    const nearest = player.path.projectNear(player.x, player.z, player.pathIndex, 36);
+    const point = player.path.point(nearest);
+    const deviation = Math.hypot(player.x - point.x, player.z - point.z);
+    if (deviation > maximumDeviation) {
+      maximumDeviation = deviation;
+      deviationAt = `${Math.round(player.progress)}m @ ${Math.round(player.speed * 3.6)}km/h`;
+    }
+    samples++;
+  }
+  check(player.finished && samples > 100, `${id}: drawn path tracking did not finish`);
+  check(maximumDeviation < 1.8, `${id}: car strayed ${maximumDeviation.toFixed(2)} m from the line`);
+  console.log(`${id}: ghost path maximum deviation ${maximumDeviation.toFixed(2)} m (${deviationAt})`);
+}

@@ -200,7 +200,7 @@ export class Vehicle {
 
     // --- 2. Pure-pursuit steering ---------------------------------------
     const lookahead = this.isPlayer
-      ? clamp(2.5 + this.speed * 0.16, 3.5, 13)
+      ? clamp(1.5 + this.speed * 0.16, 2.3, 13)
       : clamp(3.6 + this.speed * (0.44 - L.steerResponse * 0.014), 4.5, 36);
     const target = this.path.sampleAhead(this.pathIndex, lookahead);
 
