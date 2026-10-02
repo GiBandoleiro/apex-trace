@@ -535,12 +535,7 @@ export class GameEngine {
 
     this.skid.clear();
     this.particles.clear();
-    this.rig.mode = 'overview';
-    this.rig.frameBounds(this.geometry!.bounds, 1.7, true);
-    const start = this.geometry!.point(0);
-    this.rig.focusOverview(start.x, start.z);
-    this.rig.zoom(0.42);
-    this.rig.snapOverview();
+    this.resetDrawingCamera();
     this.trajectory.clear();
     this.trajectory.visible = true;
     this.danger.clear();
@@ -553,6 +548,16 @@ export class GameEngine {
   /* ---------------------------------------------------------------- */
   /* Drawing                                                           */
   /* ---------------------------------------------------------------- */
+
+  private resetDrawingCamera(): void {
+    if (!this.geometry) return;
+    this.rig.mode = 'overview';
+    this.rig.frameBounds(this.geometry.bounds, 1.7, true);
+    const start = this.geometry.point(0);
+    this.rig.focusOverview(start.x, start.z);
+    this.rig.zoom(0.42);
+    this.rig.snapOverview();
+  }
 
   private resetDrawState(): void {
     this.drawState = {
@@ -567,8 +572,8 @@ export class GameEngine {
 
   private onStrokeStart(p: StrokePoint): void {
     if (this.phase !== 'draw') return;
-    // Begin from a stable projection; following starts only as the stroke
-    // approaches the edge of the usable screen.
+    // Begin from a stable projection. During the stroke the camera follows
+    // the sampled road point without changing the zoom under the pointer.
     this.rig.snapOverview();
     this.activeStroke = [];
     this.livePoints = [];
@@ -579,14 +584,14 @@ export class GameEngine {
     if (this.phase !== 'draw' || this.activeStroke.length === 0) return;
     this.appendStrokeSample(p);
     const tip = this.activeStroke[this.activeStroke.length - 1];
-    if (this.geometry && tip && (Math.abs(p.ndcX) > 0.48 || Math.abs(p.ndcY) > 0.44)) {
+    if (this.geometry && tip) {
       const station = this.geometry.project(tip.x, tip.z).index;
-      const ahead = this.geometry.point(station + 18);
-      // Keep the route ahead in view while preserving the current zoom and
-      // using the current camera projection for every pointer sample.
+      const ahead = this.geometry.point(station + 8);
+      // Follow every valid sample and leave a little road ahead of the tip.
+      // Each following pointer event is projected through the updated camera.
       this.rig.focusOverview(
-        tip.x * 0.48 + ahead.x * 0.52,
-        tip.z * 0.48 + ahead.z * 0.52,
+        tip.x * 0.72 + ahead.x * 0.28,
+        tip.z * 0.72 + ahead.z * 0.28,
       );
     }
     const speeds = this.activeStroke.slice(1).map((sample, i) => {
@@ -595,7 +600,7 @@ export class GameEngine {
     });
     const sorted = [...speeds].sort((a, b) => a - b);
     const median = sorted[Math.floor(sorted.length / 2)] || 1;
-    this.trajectory.drawPolyline(this.livePoints, 5.8, speeds.map((speed) => (paceFromGesture(speed, median) - 0.25) / 0.93));
+    this.trajectory.drawPolyline(this.livePoints, 23.2, speeds.map((speed) => (paceFromGesture(speed, median) - 0.25) / 0.93));
   }
 
   private appendStrokeSample(p: StrokePoint): void {
@@ -646,6 +651,7 @@ export class GameEngine {
       this.trajectory.clear();
       this.danger.clear();
       this.resetDrawState();
+      this.resetDrawingCamera();
       return;
     }
 
